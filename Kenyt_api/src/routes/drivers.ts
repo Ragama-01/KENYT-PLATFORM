@@ -19,6 +19,12 @@ export default async function driverRoutes(app: FastifyInstance) {
           idNumber: v.id_number,
           truckId: v.truck_id ?? null,
           dateOfJoining: new Date(v.date_of_joining),
+          kraPin: v.kra_pin,
+          kpaId: v.kpa_id || null,
+          phoneNumber: v.phone_number,
+          email: v.email,
+          nssfNumber: v.nssf_number,
+          shifNumber: v.shif_number,
         },
       });
 
@@ -34,7 +40,7 @@ export default async function driverRoutes(app: FastifyInstance) {
 
   app.get("/drivers", async (_request, reply) => {
     const drivers = await prisma.driver.findMany({
-      include: { truck: { select: { registrationNumber: true } } },
+      include: { truck: { select: { registration_number: true } } },
       orderBy: { fullName: "asc" },
     });
     return reply.send(drivers);

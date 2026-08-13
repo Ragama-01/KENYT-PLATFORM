@@ -19,6 +19,8 @@ interface TruckDetailPageProps {
 }
 
 export default function TruckDetailPage({ truck, onBack, onEdit }: TruckDetailPageProps) {
+  const trailer = truck.trailer;
+
   return (
     <div>
       <header className="mb-8 flex items-center justify-between">
@@ -82,32 +84,32 @@ export default function TruckDetailPage({ truck, onBack, onEdit }: TruckDetailPa
           </dl>
         </section>
 
-        {truck.trailer_registration && (
+        {trailer && (
           <>
             <section>
               <h2 className="mb-3 text-sm font-semibold text-ink">Trailer</h2>
               <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                <Field label="Trailer registration" value={truck.trailer_registration} />
+                <Field label="Trailer registration" value={trailer.registration_number} />
               </dl>
             </section>
 
             <section>
               <h2 className="mb-3 text-sm font-semibold text-ink">Trailer insurance</h2>
               <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                <Field label="Issued" value={truck.trailer_insurance_issued} />
-                <Field label="Expiry" value={truck.trailer_insurance_expiry} />
-                <Field label="Policy number" value={truck.trailer_insurance_ref} />
+                <Field label="Issued" value={trailer.insurance_issued} />
+                <Field label="Expiry" value={trailer.insurance_expiry} />
+                <Field label="Policy number" value={trailer.insurance_ref} />
               </dl>
             </section>
 
             <section>
               <h2 className="mb-3 text-sm font-semibold text-ink">Trailer COMESA</h2>
               <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                <Field label="Policy number" value={truck.trailer_comesa_policy_number} />
-                <Field label="Insurer" value={truck.trailer_comesa_insurer} />
-                <Field label="Date taken" value={truck.trailer_comesa_date_taken} />
-                <Field label="Date of expiry" value={truck.trailer_comesa_date_expiry} />
-                <Field label="Premium amount" value={truck.trailer_comesa_premium_amount} />
+                <Field label="Policy number" value={trailer.comesa_policy_number} />
+                <Field label="Insurer" value={trailer.comesa_insurer} />
+                <Field label="Date taken" value={trailer.comesa_date_taken} />
+                <Field label="Date of expiry" value={trailer.comesa_date_expiry} />
+                <Field label="Premium amount" value={trailer.comesa_premium_amount} />
               </dl>
             </section>
           </>

@@ -15,6 +15,7 @@ const schema = z.object({
   kra_pin: z
     .string()
     .regex(/^[A-Z]\d{9}[A-Z]$/i, "Expected format e.g. A012345678Z"),
+  kpa_id: z.string().optional(),
   phone_number: z
     .string()
     .regex(/^(?:\+254|0)7\d{8}$|^(?:\+254|0)1\d{8}$/, "Enter a valid Kenyan phone number"),
@@ -45,6 +46,7 @@ function toFormValues(driver?: Driver): Partial<DriverFormValues> {
     truck_id: driver.truck_id != null ? String(driver.truck_id) : undefined,
     date_of_joining: driver.date_of_joining,
     kra_pin: driver.kra_pin,
+    kpa_id: driver.kpa_id,
     phone_number: driver.phone_number,
     email: driver.email,
     nssf_number: driver.nssf_number,
@@ -80,6 +82,7 @@ export default function DriverForm({ truckOptions, onSubmit, driver, onViewAll }
       truck_id: values.truck_id ? Number(values.truck_id) : null,
       date_of_joining: values.date_of_joining,
       kra_pin: values.kra_pin,
+      kpa_id: values.kpa_id,
       phone_number: values.phone_number,
       email: values.email,
       nssf_number: values.nssf_number,
@@ -177,6 +180,14 @@ export default function DriverForm({ truckOptions, onSubmit, driver, onViewAll }
             placeholder="A012345678Z"
             error={errors.kra_pin?.message}
             {...register("kra_pin")}
+          />
+          <TextField
+            id="kpa_id"
+            label="KPA ID number"
+            mono
+            placeholder="e.g. KPA-12345"
+            error={errors.kpa_id?.message}
+            {...register("kpa_id")}
           />
           <TextField
             id="nssf_number"

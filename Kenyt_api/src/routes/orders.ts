@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
+import { sendOrderCreatedNotification } from "../services/email.service";
 
 export default async function orderRoutes(app: FastifyInstance) {
   /**
@@ -42,9 +43,40 @@ deliveryLocation: {
 
     freeStorageDays: body.free_storage_days ?? null,
 
+    etaDischargeDate: body.eta_discharge_date ? new Date(body.eta_discharge_date) : null,
+
+    documentationStatus: body.documentation_status || null,
+
     specialInstructions: body.special_instructions || null,
   },
+  include: {
+    pickupLocation: true,
+    deliveryLocation: true,
+  },
 });
+
+      // Send email notification to the super user for allocation
+      try {
+        await sendOrderCreatedNotification({
+          orderId: order.orderId,
+          bolNumber: order.bolNumber,
+          customerName: order.customerName,
+          cargoType: order.cargoType,
+          weightTonnes: String(order.cargoWeightTonnes),
+          loadType: order.loadType,
+          pickup: order.pickupLocation?.name ?? "Unknown",
+          delivery: order.deliveryLocation?.name ?? "Unknown",
+          etaDischarge: order.etaDischargeDate
+            ? order.etaDischargeDate.toISOString().split("T")[0]
+            : null,
+          specialInstructions: order.specialInstructions,
+        });
+      } catch (notifErr) {
+        request.log.warn(
+          { err: notifErr },
+          "Order created but notification email failed to send"
+        );
+      }
 
       return reply.status(201).send({
         id: order.orderId,

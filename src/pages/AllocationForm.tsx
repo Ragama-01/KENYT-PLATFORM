@@ -17,12 +17,17 @@ interface TruckCandidate {
   registration: string;
   capacity: number;
   distanceKm: number;
+  currentLocation: string | null;
+  hasExistingOrder: boolean;
+  currentOrderDestination: string | null;
+  lastAllocatedAt: string | null;
 }
 
 interface TruckRecommendation {
   orderId: number;
   cargoWeightTonnes: number;
   pickupLocation: string;
+  deliveryLocation: string;
   trucks: TruckCandidate[];
 }
 
@@ -88,6 +93,15 @@ export default function AllocationForm({
     )} t)`,
   }));
 
+  // Auto-select the first pending order when orders load
+  useEffect(() => {
+    if (!selectedOrderId && orders.length > 0) {
+      const firstOrderId = String(orders[0].id);
+      setSelectedOrderId(firstOrderId);
+      setValue("order_id", firstOrderId);
+    }
+  }, [orders, selectedOrderId, setValue]);
+
   //-----------------------------------------------------
   // Load recommendation
   //-----------------------------------------------------
@@ -104,6 +118,8 @@ export default function AllocationForm({
       try {
         setLoadingRecommendation(true);
         setRecommendationError(null);
+        setRecommendation(null);
+        setSelectedTruckId(null);
 
         const res = await fetch(
           `http://localhost:4000/allocations/suggest/${selectedOrderId}`
@@ -151,6 +167,33 @@ export default function AllocationForm({
     setRecommendationError(null);
 
     setValue("order_id", e.target.value);
+  };
+
+  //-----------------------------------------------------
+  // Helpers
+  //-----------------------------------------------------
+
+  const formatLastAllocated = (iso: string | null) => {
+    if (!iso) return null;
+
+    const date = new Date(iso);
+    const now = new Date();
+
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hr ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   };
 
   //-----------------------------------------------------
@@ -253,6 +296,10 @@ export default function AllocationForm({
                   {recommendation.pickupLocation}
                 </div>
                 <div className="text-sm text-ink-muted">
+                  <strong>Delivery:</strong>{" "}
+                  {recommendation.deliveryLocation}
+                </div>
+                <div className="text-sm text-ink-muted">
                   <strong>
                     {recommendation.trucks.length} truck
                     {recommendation.trucks.length > 1
@@ -294,6 +341,36 @@ export default function AllocationForm({
                         <div className="text-sm text-ink-muted">
                           Capacity: {truck.capacity} tonnes
                         </div>
+                        <div className="text-sm text-ink-muted">
+                          Current location:{" "}
+                          {truck.currentLocation ?? "Unknown"}
+                        </div>
+                        {truck.hasExistingOrder && (
+                          <div className="text-sm text-amber-600">
+                            ⚠ Currently on an order — heading
+                            to{" "}
+                            {truck.currentOrderDestination ??
+                              "Unknown"}
+                          </div>
+                        )}
+                        {truck.lastAllocatedAt ? (
+                          <div
+                            className={`text-sm ${
+                              truck.hasExistingOrder
+                                ? "text-amber-600"
+                                : "text-ink-muted"
+                            }`}
+                          >
+                            🕒 Last allocated:{" "}
+                            {formatLastAllocated(
+                              truck.lastAllocatedAt
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-green-700">
+                            ✓ Never allocated
+                          </div>
+                        )}
                       </div>
 
                       <div className="text-sm font-medium text-ink-muted">

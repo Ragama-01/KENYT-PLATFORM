@@ -17,11 +17,26 @@ export type ComplianceType =
   | "speed_governor";
 
 export type LoadType =
-  | "FCL"
-  | "LCL"
-  | "bulk"
-  | "reefer"
-  | "breakbulk";
+  | "20/40 dry"
+  | "20/40 open top-special"
+  | "20/40 Reefer -special"
+  | "20/40 open reel-special";
+
+export interface Trailer {
+  trailer_id?: number;
+  truck_id: number;
+  registration_number?: string;
+
+  insurance_issued?: string;
+  insurance_expiry?: string;
+  insurance_ref?: string;
+
+  comesa_policy_number?: string;
+  comesa_insurer?: string;
+  comesa_date_taken?: string;
+  comesa_date_expiry?: string;
+  comesa_premium_amount?: number;
+}
 
 export interface Truck {
   truck_id?: number;
@@ -32,9 +47,9 @@ export interface Truck {
 
   capacity_tonnes: number;
 
-  trailer_registration?: string;
-
   status: TruckStatus;
+
+  trailer?: Trailer | null;
 }
 
 export interface TruckComplianceRecord {
@@ -51,6 +66,20 @@ export interface TruckComplianceRecord {
   document_ref?: string;
 }
 
+export interface TrailerFormValues {
+  registration_number?: string;
+
+  insurance_issued?: string;
+  insurance_expiry?: string;
+  insurance_ref?: string;
+
+  comesa_policy_number?: string;
+  comesa_insurer?: string;
+  comesa_date_taken?: string;
+  comesa_date_expiry?: string;
+  comesa_premium_amount?: number;
+}
+
 export interface TruckFormValues {
   registration_number: string;
 
@@ -58,20 +87,28 @@ export interface TruckFormValues {
 
   capacity_tonnes: number;
 
-  trailer_registration?: string;
-
-  insurance_issued: string;
-  insurance_expiry: string;
-  insurance_ref?: string;
-
   inspection_issued: string;
   inspection_expiry: string;
 
   speed_governor_issued: string;
   speed_governor_expiry: string;
+
+  truck_insurance_issued: string;
+  truck_insurance_expiry: string;
+  truck_insurance_ref?: string;
+
+  truck_comesa_policy_number: string;
+  truck_comesa_insurer: string;
+  truck_comesa_date_taken: string;
+  truck_comesa_date_expiry: string;
+  truck_comesa_premium_amount: number;
+
+  trailer?: TrailerFormValues;
 }
 
 export interface Driver {
+  id?: number;
+
   driver_id?: number;
 
   full_name: string;
@@ -81,6 +118,18 @@ export interface Driver {
   truck_id?: number | null;
 
   date_of_joining: string;
+
+  kra_pin: string;
+
+  kpa_id?: string;
+
+  phone_number: string;
+
+  email: string;
+
+  nssf_number: string;
+
+  shif_number: string;
 
   status: DriverStatus;
 }
@@ -122,6 +171,10 @@ export interface OrderFormValues {
   consignee_phone?: string;
 
   free_storage_days: number;
+
+  eta_discharge_date?: string;
+
+  documentation_status?: string;
 
   special_instructions?: string;
 }

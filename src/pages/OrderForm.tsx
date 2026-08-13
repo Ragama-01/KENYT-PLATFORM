@@ -17,43 +17,62 @@ import type {
 } from "../types/models";
 
 const LOAD_TYPES = [
-  { value: "FCL", label: "FCL — Full Container Load" },
-  { value: "LCL", label: "LCL — Less than Container Load" },
-  { value: "bulk", label: "Bulk" },
-  { value: "reefer", label: "Reefer" },
-  { value: "breakbulk", label: "Breakbulk" },
+  { value: "20/40 dry", label: "20/40 Dry" },
+  { value: "20/40 open top-special", label: "20/40 Open Top (Special)" },
+  { value: "20/40 Reefer -special", label: "20/40 Reefer (Special)" },
+  { value: "20/40 open reel-special", label: "20/40 Open Reel (Special)" },
+];
+
+const DOCUMENTATION_STATUS_OPTIONS = [
+  { value: "pending", label: "Pending" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "complete", label: "Complete" },
+  { value: "on_hold", label: "On Hold" },
 ];
 
 const schema = z.object({
-  bol_number: z.string().min(1),
+  bol_number: z.string().min(1, "BOL number is required"),
 
-  customer_name: z.string().min(1),
+  customer_name: z.string().min(1, "Customer is required"),
 
-  cargo_type: z.string().min(1),
+  cargo_type: z.string().min(1, "Cargo type is required"),
 
   load_type: z.enum([
-    "FCL",
-    "LCL",
-    "bulk",
-    "reefer",
-    "breakbulk",
+    "20/40 dry",
+    "20/40 open top-special",
+    "20/40 Reefer -special",
+    "20/40 open reel-special",
   ]),
 
-  weight_tonnes: z.coerce.number(),
+  weight_tonnes: z.coerce
+    .number({ invalid_type_error: "Weight is required" })
+    .positive("Weight must be greater than 0"),
 
   container_number: z.string().optional(),
 
   container_type: z.string().optional(),
 
-  pickup_location_id: z.coerce.number(),
+  pickup_location_id: z.coerce
+    .number()
+    .min(1, "Select a pickup location"),
 
-  delivery_location_id: z.coerce.number(),
+  delivery_location_id: z.coerce
+    .number()
+    .min(1, "Select a delivery location"),
 
-  consignee_name: z.string().min(1),
+  consignee_name: z.string().min(1, "Consignee name is required"),
 
   consignee_phone: z.string().optional(),
 
-  free_storage_days: z.coerce.number(),
+  free_storage_days: z
+    .coerce
+    .number()
+    .min(0, "Free storage days cannot be negative")
+    .max(15, "Maximum 15 days"),
+
+  eta_discharge_date: z.string().optional(),
+
+  documentation_status: z.string().optional(),
 
   special_instructions: z.string().optional(),
 });
@@ -68,6 +87,10 @@ export default function OrderForm({
   onSubmit,
 }: Props) {
   const [locations, setLocations] = useState<Location[]>([]);
+
+  const [submitError, setSubmitError] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     fetch("http://localhost:4000/locations")
@@ -114,8 +137,17 @@ export default function OrderForm({
   }));
 
   const submit = async (values: OrderFormValues) => {
-    console.log(values);
-    await onSubmit(values);
+    try {
+      setSubmitError(null);
+      await onSubmit(values);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : "Failed to save order. Please try again."
+      );
+      throw err;
+    }
   };
 
   return (
@@ -177,8 +209,10 @@ export default function OrderForm({
             label="Free Storage Days"
             id="free_storage_days"
             type="number"
+            max={15}
             {...register("free_storage_days")}
             error={errors.free_storage_days?.message}
+            hint="Maximum 15 days"
           />
 
           {urgency && (
@@ -186,6 +220,23 @@ export default function OrderForm({
               {urgency.label}
             </span>
           )}
+
+          <TextField
+            label="ETA Discharge Date"
+            id="eta_discharge_date"
+            type="date"
+            {...register("eta_discharge_date")}
+            error={errors.eta_discharge_date?.message}
+          />
+
+          <SelectField
+            id="documentation_status"
+            label="Documentation Status"
+            options={DOCUMENTATION_STATUS_OPTIONS}
+            placeholder="Select documentation status"
+            {...register("documentation_status")}
+            error={errors.documentation_status?.message}
+          />
         </FieldGroup>
 
         <FieldGroup title="Container">
@@ -243,7 +294,16 @@ export default function OrderForm({
           />
         </FieldGroup>
 
-        <div className="flex items-center gap-3 border-t border-navy-950/10 pt-6">
+        <div className="flex flex-col gap-3 border-t border-navy-950/10 pt-6">
+          {submitError && (
+            <span
+              role="alert"
+              className="text-sm font-medium text-red-700"
+            >
+              {submitError}
+            </span>
+          )}
+
           <Button
             type="submit"
             disabled={isSubmitting}

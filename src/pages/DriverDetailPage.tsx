@@ -64,6 +64,7 @@ export default function DriverDetailPage({
           <h2 className="mb-3 text-sm font-semibold text-ink">Statutory</h2>
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Field label="KRA PIN" value={driver.kra_pin} />
+            <Field label="KPA ID number" value={driver.kpa_id} />
             <Field label="NSSF number" value={driver.nssf_number} />
             <Field label="SHIF/SHA number" value={driver.shif_number} />
           </dl>

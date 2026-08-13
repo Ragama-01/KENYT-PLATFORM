@@ -41,19 +41,23 @@ const schema = z
       .positive("Enter a valid amount"),
 
     // --- Trailer ---
-    trailer_registration: z.string().optional(),
+    trailer: z
+      .object({
+        registration_number: z.string().optional(),
 
-    trailer_insurance_issued: z.string().optional(),
-    trailer_insurance_expiry: z.string().optional(),
-    trailer_insurance_ref: z.string().optional(),
+        insurance_issued: z.string().optional(),
+        insurance_expiry: z.string().optional(),
+        insurance_ref: z.string().optional(),
 
-    trailer_comesa_policy_number: z.string().optional(),
-    trailer_comesa_insurer: z.string().optional(),
-    trailer_comesa_date_taken: z.string().optional(),
-    trailer_comesa_date_expiry: z.string().optional(),
-    trailer_comesa_premium_amount: z.coerce
-      .number({ invalid_type_error: "Enter a valid amount" })
-      .positive("Enter a valid amount")
+        comesa_policy_number: z.string().optional(),
+        comesa_insurer: z.string().optional(),
+        comesa_date_taken: z.string().optional(),
+        comesa_date_expiry: z.string().optional(),
+        comesa_premium_amount: z.coerce
+          .number({ invalid_type_error: "Enter a valid amount" })
+          .positive("Enter a valid amount")
+          .optional(),
+      })
       .optional(),
   })
   .refine((d) => d.inspection_expiry > d.inspection_issued, {
@@ -74,22 +78,22 @@ const schema = z
   })
   .refine(
     (d) =>
-      !d.trailer_insurance_issued ||
-      !d.trailer_insurance_expiry ||
-      d.trailer_insurance_expiry > d.trailer_insurance_issued,
+      !d.trailer?.insurance_issued ||
+      !d.trailer?.insurance_expiry ||
+      d.trailer.insurance_expiry > d.trailer.insurance_issued,
     {
       message: "Expiry must be after issue date",
-      path: ["trailer_insurance_expiry"],
+      path: ["trailer", "insurance_expiry"],
     }
   )
   .refine(
     (d) =>
-      !d.trailer_comesa_date_taken ||
-      !d.trailer_comesa_date_expiry ||
-      d.trailer_comesa_date_expiry > d.trailer_comesa_date_taken,
+      !d.trailer?.comesa_date_taken ||
+      !d.trailer?.comesa_date_expiry ||
+      d.trailer.comesa_date_expiry > d.trailer.comesa_date_taken,
     {
       message: "Expiry must be after date taken",
-      path: ["trailer_comesa_date_expiry"],
+      path: ["trailer", "comesa_date_expiry"],
     }
   );
 
@@ -282,75 +286,75 @@ export default function TruckForm({ onSubmit, truck, onViewAll }: TruckFormProps
 
         <FieldGroup title="Trailer">
           <TextField
-            id="trailer_registration"
+            id="trailer.registration_number"
             label="Trailer registration"
             mono
             hint="Leave blank if trailer isn't independently registered"
             placeholder="ZE 4021"
-            error={errors.trailer_registration?.message}
-            {...register("trailer_registration")}
+            error={errors.trailer?.registration_number?.message}
+            {...register("trailer.registration_number")}
           />
         </FieldGroup>
 
         <FieldGroup title="Trailer insurance">
           <TextField
-            id="trailer_insurance_issued"
+            id="trailer.insurance_issued"
             label="Issued"
             type="date"
-            error={errors.trailer_insurance_issued?.message}
-            {...register("trailer_insurance_issued")}
+            error={errors.trailer?.insurance_issued?.message}
+            {...register("trailer.insurance_issued")}
           />
           <TextField
-            id="trailer_insurance_expiry"
+            id="trailer.insurance_expiry"
             label="Expiry"
             type="date"
-            error={errors.trailer_insurance_expiry?.message}
-            {...register("trailer_insurance_expiry")}
+            error={errors.trailer?.insurance_expiry?.message}
+            {...register("trailer.insurance_expiry")}
           />
           <TextField
-            id="trailer_insurance_ref"
+            id="trailer.insurance_ref"
             label="Policy number"
             mono
-            error={errors.trailer_insurance_ref?.message}
-            {...register("trailer_insurance_ref")}
+            error={errors.trailer?.insurance_ref?.message}
+            {...register("trailer.insurance_ref")}
           />
         </FieldGroup>
 
         <FieldGroup title="Trailer COMESA">
           <TextField
-            id="trailer_comesa_policy_number"
+            id="trailer.comesa_policy_number"
             label="Policy number"
             mono
-            error={errors.trailer_comesa_policy_number?.message}
-            {...register("trailer_comesa_policy_number")}
+            error={errors.trailer?.comesa_policy_number?.message}
+            {...register("trailer.comesa_policy_number")}
           />
           <TextField
-            id="trailer_comesa_insurer"
+            id="trailer.comesa_insurer"
             label="Insurer"
-            error={errors.trailer_comesa_insurer?.message}
-            {...register("trailer_comesa_insurer")}
+            error={errors.trailer?.comesa_insurer?.message}
+            {...register("trailer.comesa_insurer")}
           />
           <TextField
-            id="trailer_comesa_date_taken"
+            id="trailer.comesa_date_taken"
             label="Date taken"
             type="date"
-            error={errors.trailer_comesa_date_taken?.message}
-            {...register("trailer_comesa_date_taken")}
+            error={errors.trailer?.comesa_date_taken?.message}
+            {...register("trailer.comesa_date_taken")}
           />
           <TextField
-            id="trailer_comesa_date_expiry"
+            id="trailer.comesa_date_expiry"
             label="Date of expiry"
             type="date"
-            error={errors.trailer_comesa_date_expiry?.message}
-            {...register("trailer_comesa_date_expiry")}
+            error={errors.trailer?.comesa_date_expiry?.message}
+            {...register("trailer.comesa_date_expiry")}
           />
           <TextField
-            id="trailer_comesa_premium_amount"
+            id="trailer.comesa_premium_amount"
             label="Premium amount"
             type="number"
             placeholder="e.g. 25000"
-            error={errors.trailer_comesa_premium_amount?.message}
-            {...register("trailer_comesa_premium_amount")}
+            error={errors.trailer?.comesa_premium_amount?.message}
+            {...register("trailer.comesa_premium_amount")}
           />
         </FieldGroup>
 

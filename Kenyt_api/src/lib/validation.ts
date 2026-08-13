@@ -8,6 +8,20 @@ const currentYear = new Date().getFullYear();
 // including the COMESA and trailer sections, which the previous version
 // of this schema didn't validate at all.
 
+const trailerSchema = z.object({
+  registration_number: z.string().optional(),
+
+  insurance_issued: dateStr.optional(),
+  insurance_expiry: dateStr.optional(),
+  insurance_ref: z.string().optional(),
+
+  comesa_policy_number: z.string().optional(),
+  comesa_insurer: z.string().optional(),
+  comesa_date_taken: dateStr.optional(),
+  comesa_date_expiry: dateStr.optional(),
+  comesa_premium_amount: z.number().positive().optional(),
+});
+
 const truckBaseSchema = z.object({
   registration_number: z
     .string()
@@ -31,17 +45,7 @@ const truckBaseSchema = z.object({
   truck_comesa_date_expiry: dateStr,
   truck_comesa_premium_amount: z.number().positive(),
 
-  trailer_registration: z.string().optional(),
-
-  trailer_insurance_issued: dateStr.optional(),
-  trailer_insurance_expiry: dateStr.optional(),
-  trailer_insurance_ref: z.string().optional(),
-
-  trailer_comesa_policy_number: z.string().optional(),
-  trailer_comesa_insurer: z.string().optional(),
-  trailer_comesa_date_taken: dateStr.optional(),
-  trailer_comesa_date_expiry: dateStr.optional(),
-  trailer_comesa_premium_amount: z.number().positive().optional(),
+  trailer: trailerSchema.optional(),
 });
 
 export const truckRegistrationSchema = truckBaseSchema
@@ -60,7 +64,27 @@ export const truckRegistrationSchema = truckBaseSchema
   .refine((d) => d.truck_comesa_date_expiry > d.truck_comesa_date_taken, {
     message: "COMESA expiry must be after date taken",
     path: ["truck_comesa_date_expiry"],
-  });
+  })
+  .refine(
+    (d) =>
+      !d.trailer?.insurance_issued ||
+      !d.trailer?.insurance_expiry ||
+      d.trailer.insurance_expiry > d.trailer.insurance_issued,
+    {
+      message: "Trailer insurance expiry must be after issue date",
+      path: ["trailer", "insurance_expiry"],
+    }
+  )
+  .refine(
+    (d) =>
+      !d.trailer?.comesa_date_taken ||
+      !d.trailer?.comesa_date_expiry ||
+      d.trailer.comesa_date_expiry > d.trailer.comesa_date_taken,
+    {
+      message: "Trailer COMESA expiry must be after date taken",
+      path: ["trailer", "comesa_date_expiry"],
+    }
+  );
 
 // Same fields, but every one optional — for PUT, where a partial update
 // is valid (you're not required to resend every field every time). Skips
@@ -81,6 +105,7 @@ export const driverRegistrationSchema = z.object({
   date_of_joining: dateStr,
 
   kra_pin: z.string().regex(/^[A-Z]\d{9}[A-Z]$/i, "Expected format e.g. A012345678Z"),
+  kpa_id: z.string().optional(),
   phone_number: z
     .string()
     .regex(/^(?:\+254|0)7\d{8}$|^(?:\+254|0)1\d{8}$/, "Enter a valid Kenyan phone number"),

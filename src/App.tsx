@@ -69,6 +69,11 @@ export default function App() {
     setOrders(data);
   }
 
+  // Only show pending (non-allocated) orders in the allocation dropdown
+  const pendingOrders = orders.filter(
+    (o) => o.status !== "allocated"
+  );
+
   async function loadTrucks() {
     const res = await fetch("http://localhost:4000/trucks");
 
@@ -398,7 +403,7 @@ export default function App() {
 
     {section === "allocations" && (
       <AllocationForm
-        orders={orders}
+        orders={pendingOrders}
         trucks={trucks}
         onSubmit={handleAllocate}
       />

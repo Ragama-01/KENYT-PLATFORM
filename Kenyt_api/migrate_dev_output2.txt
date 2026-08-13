@@ -1,0 +1,6 @@
+﻿Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "kenyt_int", schema "public" at "localhost:5432"
+
+The migration `20260810060353_add_trailer_table` was modified after it was applied.
+[?25l[2K[1G[36m?[39m [1mWe need to reset the "public" schema at "localhost:5432"

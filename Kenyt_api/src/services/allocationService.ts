@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { haversineDistance } from "../utils/distance";
+import { sendAllocationNotification } from "./email.service";
 
 export async function findBestTruck(orderId: number, truckId?: number) {
   // ----------------------------------------------------
@@ -133,6 +134,26 @@ export async function findBestTruck(orderId: number, truckId?: number) {
       status: "allocated",
     },
   });
+
+  // ----------------------------------------------------
+  // Send email notification to the team
+  // ----------------------------------------------------
+  try {
+    await sendAllocationNotification({
+      orderId: order.orderId,
+      bolNumber: order.bolNumber,
+      customerName: order.customerName,
+      truckRegistration: selectedTruck.registration_number,
+      truckCapacity: selectedTruck.capacity_tonnes
+        ? String(selectedTruck.capacity_tonnes)
+        : null,
+    });
+  } catch (notifErr) {
+    console.warn(
+      { err: notifErr },
+      "Allocation completed but notification email failed to send"
+    );
+  }
 
   // ----------------------------------------------------
   // Return result

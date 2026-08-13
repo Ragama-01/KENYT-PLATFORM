@@ -40,7 +40,7 @@ Think of it as a **digital control room** for the entire trucking operation.
 │                                                                 │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
 │  │   ORDERS    │    │  ALLOCATE   │    │   TRUCKS    │         │
-│  │  (Intake)   │───▶│  (Matching) │◀───│   (Fleet)   │         │
+│  │  (Intake)   │───▶│  (Matching) │◀───│   (Fleet)  │         │
 │  └─────────────┘    └─────────────┘    └─────────────┘         │
 │         │                  │                    │              │
 │         │                  ▼                    │              │

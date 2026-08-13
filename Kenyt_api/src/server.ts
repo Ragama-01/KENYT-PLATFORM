@@ -1,3 +1,4 @@
+import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 
@@ -6,6 +7,7 @@ import driverRoutes from "./routes/drivers";
 import orderRoutes from "./routes/orders";
 import allocationRoutes from "./routes/allocations";
 import locationRoutes from "./routes/locations";
+import { startWialonPolling } from "./services/wialonPolling.service.js";
 
 const app = Fastify({
   logger: true
@@ -38,6 +40,10 @@ async function main() {
     host: "0.0.0.0"
   });
 
+  // Start hourly truck location polling for accurate allocation
+  startWialonPolling().catch((err) => {
+    app.log.error({ err }, "Failed to start Wialon polling");
+  });
 }
 
 main().catch((err) => {

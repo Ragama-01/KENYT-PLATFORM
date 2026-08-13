@@ -6,17 +6,22 @@ export interface TruckCandidate {
   registration: string;
   capacity: number;
   distanceKm: number;
+  currentLocation: string | null;
+  hasExistingOrder: boolean;
+  currentOrderDestination: string | null;
+  lastAllocatedAt: string | null;
 }
 
 export interface TruckRecommendation {
   orderId: number;
   cargoWeightTonnes: number;
   pickupLocation: string;
+  deliveryLocation: string;
   trucks: TruckCandidate[];
 }
 
 export async function recommendTruck(orderId: number): Promise<TruckRecommendation> {
-  // Find the order with its pickup location
+  // Find the order with its pickup and delivery locations
   const order = await prisma.order.findUnique({
     where: {
       orderId,
@@ -36,18 +41,35 @@ export async function recommendTruck(orderId: number): Promise<TruckRecommendati
   }
 
   // Find available trucks together with their latest location
+  // and any existing allocations/orders
   const trucks = await prisma.truck.findMany({
     where: {
       status: "available",
     },
     include: {
       location: true,
+      allocations: {
+        include: {
+          order: {
+            include: {
+              deliveryLocation: true,
+            },
+          },
+        },
+        orderBy: {
+          allocatedAt: "desc",
+        },
+        take: 1,
+      },
     },
   });
 
   if (trucks.length === 0) {
     throw new Error("No available trucks.");
   }
+
+  // Load all locations for reverse geocoding truck positions
+  const locations = await prisma.location.findMany();
 
   const candidates: TruckCandidate[] = [];
 
@@ -70,11 +92,42 @@ export async function recommendTruck(orderId: number): Promise<TruckRecommendati
       Number(order.pickupLocation.longitude)
     );
 
+    // Find the nearest known location name for the truck's current position
+    let currentLocation: string | null = null;
+    let minDist = Infinity;
+
+    for (const loc of locations) {
+      const d = calculateDistanceKm(
+        Number(truck.location.lat),
+        Number(truck.location.lng),
+        Number(loc.latitude),
+        Number(loc.longitude)
+      );
+
+      if (d < minDist) {
+        minDist = d;
+        currentLocation = loc.name;
+      }
+    }
+
+    // Check if the truck has an existing allocation/order
+    const latestAllocation = truck.allocations[0];
+    const hasExistingOrder = !!latestAllocation;
+    const currentOrderDestination =
+      latestAllocation?.order?.deliveryLocation?.name ?? null;
+    const lastAllocatedAt = latestAllocation?.allocatedAt
+      ? latestAllocation.allocatedAt.toISOString()
+      : null;
+
     candidates.push({
       truckId: truck.truckId,
       registration: truck.registration_number,
       capacity: Number(truck.capacity_tonnes),
       distanceKm: Number(distance.toFixed(2)),
+      currentLocation,
+      hasExistingOrder,
+      currentOrderDestination,
+      lastAllocatedAt,
     });
   }
 
@@ -89,6 +142,7 @@ export async function recommendTruck(orderId: number): Promise<TruckRecommendati
     orderId: order.orderId,
     cargoWeightTonnes: Number(order.cargoWeightTonnes),
     pickupLocation: order.pickupLocation.name,
+    deliveryLocation: order.deliveryLocation?.name ?? "Unknown",
     trucks: candidates,
   };
 }
