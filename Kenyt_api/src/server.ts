@@ -7,6 +7,7 @@ import driverRoutes from "./routes/drivers";
 import orderRoutes from "./routes/orders";
 import allocationRoutes from "./routes/allocations";
 import locationRoutes from "./routes/locations";
+import userRoutes from "./routes/users";
 import { startWialonPolling } from "./services/wialonPolling.service.js";
 
 const app = Fastify({
@@ -24,6 +25,7 @@ async function main() {
   await app.register(orderRoutes);
   await app.register(locationRoutes);
   await app.register(allocationRoutes);
+  await app.register(userRoutes);
 
   app.get("/health", async () => {
 

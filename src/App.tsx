@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import LoginPage from "./pages/LoginPage";
-import AppShell, { type CaptureSection } from "./components/AppShell";
+import AppShell, { type CaptureSection, type SubAction } from "./components/AppShell";
 import TruckForm from "./pages/TruckForm";
 import DriverForm from "./pages/DriverForm";
 import TrucksListPage from "./pages/TrucksListPage";
@@ -8,7 +8,11 @@ import DriversListPage from "./pages/DriversListPage";
 import TruckDetailPage from "./pages/TruckDetailPage";
 import DriverDetailPage from "./pages/DriverDetailPage";
 import OrderForm from "./pages/OrderForm";
+import OrdersListPage from "./pages/OrdersListPage";
 import AllocationForm from "./pages/AllocationForm";
+import AllocationsListPage from "./pages/AllocationsListPage";
+import UsersListPage from "./pages/UsersListPage";
+import UserForm from "./pages/UserForm";
 
 import type {
   TruckFormValues,
@@ -16,16 +20,39 @@ import type {
   OrderFormValues,
 } from "./types/models";
 
+type User = {
+  id: number;
+  email: string;
+  fullName: string;
+  role: string;
+  isActive: boolean;
+  lastLogin: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type TruckRecord = TruckFormValues & {
   id: number | string;
 };
 
-async function loginRequest(email: string, password: string) {
-  await new Promise((r) => setTimeout(r, 500));
+type UserView =
+  | { mode: "form"; user?: User }
+  | { mode: "list" };
 
-  if (!password) {
-    throw new Error("Invalid credentials");
+async function loginRequest(email: string, password: string) {
+  const res = await fetch("http://localhost:4000/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || "Invalid credentials");
   }
+
+  const data = await res.json();
+  return data.user;
 }
 
 type TruckView =
@@ -38,20 +65,46 @@ type DriverView =
   | { mode: "list" }
   | { mode: "detail"; driver: Driver };
 
+type OrderView =
+  | { mode: "form"; order?: any }
+  | { mode: "list" }
+  | { mode: "detail"; order: any };
+
+type AllocationView =
+  | { mode: "form" }
+  | { mode: "list" }
+  | { mode: "detail"; allocation: any };
+
 export default function App() {
   const [authed, setAuthed] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [section, setSection] =
     useState<CaptureSection>("orders");
 
   const [truckView, setTruckView] =
     useState<TruckView>({
-      mode: "form",
+      mode: "list",
     });
 
   const [driverView, setDriverView] =
     useState<DriverView>({
-      mode: "form",
+      mode: "list",
+    });
+
+  const [orderView, setOrderView] =
+    useState<OrderView>({
+      mode: "list",
+    });
+
+  const [allocationView, setAllocationView] =
+    useState<AllocationView>({
+      mode: "list",
+    });
+
+  const [userView, setUserView] =
+    useState<UserView>({
+      mode: "list",
     });
 
   // ------------------------
@@ -59,14 +112,40 @@ export default function App() {
   // ------------------------
 
   const [orders, setOrders] = useState<any[]>([]);
+  const [drivers, setDrivers] = useState<any[]>([]);
   const [trucks, setTrucks] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   async function loadOrders() {
     const res = await fetch("http://localhost:4000/orders");
 
     const data = await res.json();
 
-    setOrders(data);
+    // Transform API response from camelCase to snake_case to match frontend types
+    const transformed = data.map((order: any) => ({
+      ...order,
+      orderId: order.orderId,
+      bol_number: order.bolNumber,
+      customer_name: order.customerName,
+      weight_tonnes: order.cargoWeightTonnes,
+      cargo_type: order.cargoType,
+      load_type: order.loadType,
+      container_number: order.containerNumber,
+      container_type: order.containerType,
+      pickup_location_id: order.pickupLocation?.locationId,
+      delivery_location_id: order.deliveryLocation?.locationId,
+      pickup_location_name: order.pickupLocation?.name,
+      delivery_location_name: order.deliveryLocation?.name,
+      consignee_name: order.consigneeName,
+      consignee_phone: order.consigneePhone,
+      free_storage_days: order.freeStorageDays,
+      eta_discharge_date: order.etaDischargeDate,
+      documentation_status: order.documentationStatus,
+      special_instructions: order.specialInstructions,
+    }));
+
+    console.log("Loaded orders:", transformed);
+    setOrders(transformed);
   }
 
   // Only show pending (non-allocated) orders in the allocation dropdown
@@ -79,7 +158,47 @@ export default function App() {
 
     const data = await res.json();
 
-    setTrucks(data);
+    // Transform API response to ensure consistent field names
+    const transformed = data.map((truck: any) => ({
+      ...truck,
+      truckId: truck.truckId || truck.id,
+      registration_number: truck.registration_number,
+      capacity_tonnes: truck.capacity_tonnes,
+      status: truck.status,
+    }));
+
+    setTrucks(transformed);
+  }
+
+  async function loadDrivers() {
+    const res = await fetch("http://localhost:4000/drivers");
+
+    const data = await res.json();
+
+    // Transform API response from camelCase to snake_case to match frontend types
+    const transformed = data.map((driver: any) => ({
+      ...driver,
+      id: driver.driverId,
+      full_name: driver.fullName,
+      id_number: driver.idNumber,
+      truck_id: driver.truckId,
+      date_of_joining: driver.dateOfJoining,
+      kra_pin: driver.kraPin,
+      kpa_id: driver.kpaId,
+      phone_number: driver.phoneNumber,
+      nssf_number: driver.nssfNumber,
+      shif_number: driver.shifNumber,
+    }));
+
+    console.log("Loaded drivers:", transformed);
+    setDrivers(transformed);
+  }
+
+  async function loadUsers() {
+    const res = await fetch("http://localhost:4000/users");
+    if (!res.ok) return;
+    const data = await res.json();
+    setUsers(data);
   }
 
   useEffect(() => {
@@ -87,20 +206,98 @@ export default function App() {
 
     loadOrders();
     loadTrucks();
+    loadDrivers();
+    loadUsers();
   }, [authed]);
 
   if (!authed) {
     return (
       <LoginPage
         onSubmit={async (email, password) => {
-          await loginRequest(email, password);
-
+          const user = await loginRequest(email, password);
+          setCurrentUser(user);
           setAuthed(true);
         }}
       />
     );
   }
 
+  const isSuperAdmin = currentUser?.role === "super_admin";
+
+  async function handleSaveUser(values: {
+    email: string;
+    password?: string;
+    fullName: string;
+    role: string;
+    isActive: boolean;
+  }) {
+    const isEdit = userView.mode === "form" && userView.user;
+    const url = isEdit
+      ? `http://localhost:4000/users/${userView.user!.id}`
+      : "http://localhost:4000/users";
+
+    const method = isEdit ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Failed to save user");
+    }
+
+    await loadUsers();
+    setUserView({ mode: "list" });
+  }
+
+  async function handleDeleteUser(id: number) {
+    const res = await fetch(`http://localhost:4000/users/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to delete user");
+    }
+
+    await loadUsers();
+  }
+
+  const handleSectionNavigate = (newSection: CaptureSection) => {
+    setSection(newSection);
+    // Reset sub-view based on section
+    if (newSection === "trucks") {
+      setTruckView({ mode: "list" });
+    } else if (newSection === "drivers") {
+      setDriverView({ mode: "list" });
+    } else if (newSection === "orders") {
+      setOrderView({ mode: "list" });
+    } else if (newSection === "allocations") {
+      setAllocationView({ mode: "list" });
+    } else if (newSection === "users") {
+      setUserView({ mode: "list" });
+    }
+  };
+
+  const handleSubNavigate = (newSection: CaptureSection, action: SubAction) => {
+    setSection(newSection);
+    const goList = action === "view_all";
+    if (newSection === "trucks") {
+      setTruckView(goList ? { mode: "list" } : { mode: "form" });
+    } else if (newSection === "drivers") {
+      setDriverView(goList ? { mode: "list" } : { mode: "form" });
+    } else if (newSection === "orders") {
+      setOrderView(goList ? { mode: "list" } : { mode: "form" });
+    } else if (newSection === "allocations") {
+      setAllocationView(goList ? { mode: "list" } : { mode: "form" });
+    } else if (newSection === "users") {
+      setUserView(goList ? { mode: "list" } : { mode: "form" });
+    }
+  };
+
+  
   //---------------------------------------------------------
   // Trucks
   //---------------------------------------------------------
@@ -170,6 +367,8 @@ export default function App() {
       throw new Error(err.message);
     }
 
+    await loadDrivers();
+
     setDriverView({
       mode: "list",
     });
@@ -205,7 +404,42 @@ export default function App() {
 
     await loadOrders();
 
-    setSection("allocations");
+    setOrderView({
+      mode: "list",
+    });
+  };
+
+  const handleUpdateOrder = async (
+    values: OrderFormValues & { id?: number }
+  ) => {
+    const { id, ...body } = values;
+
+    const res = await fetch(
+      id
+        ? `http://localhost:4000/orders/${id}`
+        : "http://localhost:4000/orders",
+      {
+        method: id ? "PUT" : "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify(body),
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+
+      throw new Error(err.message || "Failed to update order");
+    }
+
+    await loadOrders();
+
+    setOrderView({
+      mode: "list",
+    });
   };
 
   //---------------------------------------------------------
@@ -245,9 +479,9 @@ export default function App() {
     await loadOrders();
     await loadTrucks();
 
-    alert(
-      `Allocated ${data.selectedTruck.registration}`
-    );
+    setAllocationView({
+      mode: "list",
+    });
   };
 
   //---------------------------------------------------------
@@ -265,149 +499,337 @@ export default function App() {
   return (
   <AppShell
     active={section}
-    onNavigate={setSection}
+    onNavigate={handleSectionNavigate}
+    onSubNavigate={handleSubNavigate}
+    isSuperAdmin={isSuperAdmin}
   >
     {/* Trucks */}
 
-    {section === "trucks" &&
-      truckView.mode === "form" && (
-        <TruckForm
-          truck={truckView.truck}
-          onSubmit={handleSaveTruck}
-          onViewAll={() =>
-            setTruckView({
-              mode: "list",
-            })
-          }
-        />
-      )}
+    {section === "trucks" && truckView.mode === "form" && (
+      <TruckForm
+        truck={truckView.truck}
+        onSubmit={handleSaveTruck}
+        onViewAll={() =>
+          setTruckView({
+            mode: "list",
+          })
+        }
+      />
+    )}
 
-    {section === "trucks" &&
-      truckView.mode === "list" && (
-        <TrucksListPage
-          onAddTruck={() =>
-            setTruckView({
-              mode: "form",
-            })
-          }
-          onViewTruck={(truck) =>
-            setTruckView({
-              mode: "detail",
-              truck,
-            })
-          }
-          onEditTruck={(truck) =>
-            setTruckView({
-              mode: "form",
-              truck,
-            })
-          }
-        />
-      )}
+    {section === "trucks" && truckView.mode === "list" && (
+      <TrucksListPage
+        onAddTruck={() =>
+          setTruckView({
+            mode: "form",
+          })
+        }
+        onViewTruck={(truck) =>
+          setTruckView({
+            mode: "detail",
+            truck,
+          })
+        }
+        onEditTruck={(truck) =>
+          setTruckView({
+            mode: "form",
+            truck,
+          })
+        }
+      />
+    )}
 
-    {section === "trucks" &&
-      truckView.mode === "detail" && (
-        <TruckDetailPage
-          truck={truckView.truck}
-          onBack={() =>
-            setTruckView({
-              mode: "list",
-            })
-          }
-          onEdit={() =>
-            setTruckView({
-              mode: "form",
-              truck: truckView.truck,
-            })
-          }
-        />
-      )}
+    {section === "trucks" && truckView.mode === "detail" && (
+      <TruckDetailPage
+        truck={truckView.truck}
+        onBack={() =>
+          setTruckView({
+            mode: "list",
+          })
+        }
+        onEdit={() =>
+          setTruckView({
+            mode: "form",
+            truck: truckView.truck,
+          })
+        }
+      />
+    )}
 
     {/* Drivers */}
 
-    {section === "drivers" &&
-      driverView.mode === "form" && (
-        <DriverForm
-          truckOptions={trucks.map((t) => ({
-            value: String(t.truckId),
-            label: t.registration_number,
-          }))}
-          driver={driverView.driver}
-          onSubmit={handleSaveDriver}
-          onViewAll={() =>
-            setDriverView({
-              mode: "list",
-            })
-          }
-        />
-      )}
+    {section === "drivers" && driverView.mode === "form" && (
+      <DriverForm
+        truckOptions={trucks.map((t) => ({
+          value: String(t.truckId),
+          label: t.registration_number,
+        }))}
+        driver={driverView.driver}
+        onSubmit={handleSaveDriver}
+        onViewAll={() =>
+          setDriverView({
+            mode: "list",
+          })
+        }
+      />
+    )}
 
-    {section === "drivers" &&
-      driverView.mode === "list" && (
-        <DriversListPage
-          truckLookup={truckLookup}
-          onAddDriver={() =>
-            setDriverView({
-              mode: "form",
-            })
-          }
-          onViewDriver={(driver) =>
-            setDriverView({
-              mode: "detail",
-              driver,
-            })
-          }
-          onEditDriver={(driver) =>
-            setDriverView({
-              mode: "form",
-              driver,
-            })
-          }
-        />
-      )}
+    {section === "drivers" && driverView.mode === "list" && (
+      <DriversListPage
+        truckLookup={truckLookup}
+        drivers={drivers}
+        onAddDriver={() =>
+          setDriverView({
+            mode: "form",
+          })
+        }
+        onViewDriver={(driver) =>
+          setDriverView({
+            mode: "detail",
+            driver,
+          })
+        }
+        onEditDriver={(driver) =>
+          setDriverView({
+            mode: "form",
+            driver,
+          })
+        }
+      />
+    )}
 
-    {section === "drivers" &&
-      driverView.mode === "detail" && (
-        <DriverDetailPage
-          driver={driverView.driver}
-          truckLabel={
-            driverView.driver.truck_id != null
-              ? truckLookup[
-                  String(driverView.driver.truck_id)
-                ] ?? "Unassigned"
-              : "Unassigned"
-          }
-          onBack={() =>
-            setDriverView({
-              mode: "list",
-            })
-          }
-          onEdit={() =>
-            setDriverView({
-              mode: "form",
-              driver: driverView.driver,
-            })
-          }
-        />
-      )}
+    {section === "drivers" && driverView.mode === "detail" && (
+      <DriverDetailPage
+        driver={driverView.driver}
+        truckLabel={
+          driverView.driver.truck_id != null
+            ? truckLookup[
+                String(driverView.driver.truck_id)
+              ] ?? "Unassigned"
+            : "Unassigned"
+        }
+        onBack={() =>
+          setDriverView({
+            mode: "list",
+          })
+        }
+        onEdit={() =>
+          setDriverView({
+            mode: "form",
+            driver: driverView.driver,
+          })
+        }
+      />
+    )}
 
     {/* Orders */}
 
-    {section === "orders" && (
+    {section === "orders" && orderView.mode === "form" && (
       <OrderForm
         onSubmit={handleSaveOrder}
+        onViewAll={() =>
+          setOrderView({
+            mode: "list",
+          })
+        }
       />
+    )}
+
+    {section === "orders" && orderView.mode === "list" && (
+      <OrdersListPage
+        orders={orders}
+        onAddOrder={() =>
+          setOrderView({
+            mode: "form",
+          })
+        }
+        onViewOrder={(order) =>
+          setOrderView({
+            mode: "detail",
+            order,
+          })
+        }
+        onEditOrder={(order) =>
+          setOrderView({
+            mode: "form",
+            order,
+          })
+        }
+      />
+    )}
+
+    {section === "orders" && orderView.mode === "detail" && (
+      <div>
+        <div className="mb-6">
+          <h2 className="font-display text-xl font-semibold text-ink">Order Details</h2>
+          <p className="mt-1 text-sm text-ink-muted">Order #{orderView.order.bol_number}</p>
+        </div>
+        <div className="rounded-lg border border-navy-950/10 bg-white p-6">
+          <div className="grid gap-4">
+            <div>
+              <label className="text-sm font-medium text-ink-muted">BOL Number</label>
+              <p className="mt-1 text-ink">{orderView.order.bol_number}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-ink-muted">Customer</label>
+              <p className="mt-1 text-ink">{orderView.order.customer_name}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-ink-muted">Cargo Type</label>
+              <p className="mt-1 text-ink">{orderView.order.cargo_type}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-ink-muted">Weight</label>
+              <p className="mt-1 text-ink">{orderView.order.weight_tonnes} tonnes</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-ink-muted">Status</label>
+              <p className="mt-1">
+                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-navy-50 text-navy-700">
+                  {orderView.order.status || "pending"}
+                </span>
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 flex gap-3">
+            <button
+              type="button"
+              className="rounded-lg bg-navy-950 px-4 py-2 text-sm font-medium text-paper hover:bg-navy-800"
+              onClick={() =>
+                setOrderView({
+                  mode: "form",
+                })
+              }
+            >
+              Edit Order
+            </button>
+            <button
+              type="button"
+              className="rounded-lg border border-navy-950/20 px-4 py-2 text-sm font-medium text-ink hover:bg-navy-50"
+              onClick={() =>
+                setOrderView({
+                  mode: "list",
+                })
+              }
+            >
+              Back to List
+            </button>
+          </div>
+        </div>
+      </div>
     )}
 
     {/* Allocations */}
 
-    {section === "allocations" && (
+    {section === "allocations" && allocationView.mode === "form" && (
       <AllocationForm
         orders={pendingOrders}
         trucks={trucks}
         onSubmit={handleAllocate}
       />
     )}
+
+    {section === "allocations" && allocationView.mode === "list" && (
+      <AllocationsListPage
+        onAddAllocation={() =>
+          setAllocationView({
+            mode: "form",
+          })
+        }
+        onViewAllocation={(allocation) =>
+          setAllocationView({
+            mode: "detail",
+            allocation,
+          })
+        }
+        onEditAllocation={(allocation) => {
+          alert("Edit functionality would open allocation edit form");
+        }}
+      />
+    )}
+
+    {section === "allocations" && allocationView.mode === "detail" && (
+      <div>
+        <div className="mb-6">
+          <h2 className="font-display text-xl font-semibold text-ink">Allocation Details</h2>
+          <p className="mt-1 text-sm text-ink-muted">
+            Order: {allocationView.allocation.order?.bol_number} - {allocationView.allocation.order?.customer_name}
+          </p>
+        </div>
+        <div className="rounded-lg border border-navy-950/10 bg-white p-6">
+          <div className="grid gap-4">
+            <div>
+              <label className="text-sm font-medium text-ink-muted">Order</label>
+              <p className="mt-1 text-ink">
+                {allocationView.allocation.order?.bol_number} - {allocationView.allocation.order?.customer_name}
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-ink-muted">Truck</label>
+              <p className="mt-1 text-ink">
+                {allocationView.allocation.truck?.registration_number} ({allocationView.allocation.truck?.capacity_tonnes}t)
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-ink-muted">Allocated At</label>
+              <p className="mt-1 text-ink">
+                {allocationView.allocation.allocatedAt ? new Date(allocationView.allocation.allocatedAt).toLocaleString() : "�"}
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 flex gap-3">
+            <button
+              type="button"
+              className="rounded-lg bg-navy-950 px-4 py-2 text-sm font-medium text-paper hover:bg-navy-800"
+              onClick={() => alert("Edit allocation form would open here")}
+            >
+              Edit Allocation
+            </button>
+            <button
+              type="button"
+              className="rounded-lg border border-navy-950/20 px-4 py-2 text-sm font-medium text-ink hover:bg-navy-50"
+              onClick={() =>
+                setAllocationView({
+                  mode: "list",
+                })
+              }
+            >
+              Back to List
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Users - Only visible to super_admin */}
+    {isSuperAdmin && section === "users" && userView.mode === "form" && (
+      <UserForm
+        user={userView.user}
+        onSubmit={handleSaveUser}
+        onCancel={() =>
+          setUserView({
+            mode: "list",
+          })
+        }
+      />
+    )}
+
+    {isSuperAdmin && section === "users" && userView.mode === "list" && (
+      <UsersListPage
+        onAddUser={() =>
+          setUserView({
+            mode: "form",
+          })
+        }
+        onEditUser={(user) =>
+          setUserView({
+            mode: "form",
+            user,
+          })
+        }
+      />
+    )}
   </AppShell>
 );
 }
+

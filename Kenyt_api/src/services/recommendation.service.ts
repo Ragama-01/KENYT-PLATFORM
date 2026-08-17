@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { calculateDistanceKm } from "./distance.service";
+import { maxCargoForTruck } from "../utils/capacity";
 
 export interface TruckCandidate {
   truckId: number;
@@ -77,10 +78,12 @@ export async function recommendTruck(orderId: number): Promise<TruckRecommendati
     // Skip trucks without a GPS location
     if (!truck.location) continue;
 
-    // Skip trucks that can't carry the cargo
+    // Skip trucks that can't carry the cargo (uses the capacity-label rule:
+    // 26 t -> carries <= 20 t, 28 t -> carries <= 28 t, above 28 t -> any cargo)
+    const maxCargo = maxCargoForTruck(truck.capacity_tonnes);
     if (
-      truck.capacity_tonnes == null ||
-      Number(truck.capacity_tonnes) < Number(order.cargoWeightTonnes)
+      maxCargo == null ||
+      (maxCargo !== Infinity && Number(order.cargoWeightTonnes) > maxCargo)
     ) {
       continue;
     }

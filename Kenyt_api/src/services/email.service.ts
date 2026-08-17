@@ -169,15 +169,22 @@ export async function sendAllocationNotification(
     </div>
   `;
 
-  try {
-    await sgMail.send({
-      to: TEAM_NOTIFICATION_EMAILS,
-      from: FROM_EMAIL,
-      subject,
-      html,
-    });
-    console.log(`[email] Allocation notification sent to: ${TEAM_NOTIFICATION_EMAILS.join(", ")}`);
-  } catch (err) {
-    console.error("[email] Failed to send allocation notification:", err);
+  // Send one email per recipient so that a single invalid/bouncing address
+  // cannot block notifications from reaching the others.
+  for (const recipient of TEAM_NOTIFICATION_EMAILS) {
+    try {
+      await sgMail.send({
+        to: recipient,
+        from: FROM_EMAIL,
+        subject,
+        html,
+      });
+      console.log(`[email] Allocation notification sent to: ${recipient}`);
+    } catch (err) {
+      console.error(
+        `[email] Failed to send allocation notification to ${recipient}:`,
+        err
+      );
+    }
   }
 }

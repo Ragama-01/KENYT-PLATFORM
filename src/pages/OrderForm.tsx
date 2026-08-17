@@ -46,7 +46,8 @@ const schema = z.object({
 
   weight_tonnes: z.coerce
     .number({ invalid_type_error: "Weight is required" })
-    .positive("Weight must be greater than 0"),
+    .positive("Weight must be greater than 0")
+    .max(100, "Weight looks too high - enter tonnes (e.g. 20, not 20000)"),
 
   container_number: z.string().optional(),
 
@@ -81,10 +82,12 @@ interface Props {
   onSubmit: (
     values: OrderFormValues
   ) => Promise<void>;
+  onViewAll?: () => void;
 }
 
 export default function OrderForm({
   onSubmit,
+  onViewAll,
 }: Props) {
   const [locations, setLocations] = useState<Location[]>([]);
 

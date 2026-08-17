@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { haversineDistance } from "../utils/distance";
 import { sendAllocationNotification } from "./email.service";
+import { maxCargoForTruck } from "../utils/capacity";
 
 export async function findBestTruck(orderId: number, truckId?: number) {
   // ----------------------------------------------------
@@ -45,12 +46,13 @@ export async function findBestTruck(orderId: number, truckId?: number) {
   const eligibleTrucks = trucks.filter((truck) => {
     if (!truck.location) return false;
 
-    if (truck.capacity_tonnes == null) return false;
+    const maxCargo = maxCargoForTruck(truck.capacity_tonnes);
+    if (maxCargo == null) return false;
 
-    return (
-      Number(truck.capacity_tonnes) >=
-      Number(order.cargoWeightTonnes)
-    );
+    // Above 28 t (e.g. 40 t) can carry any cargo.
+    if (maxCargo === Infinity) return true;
+
+    return Number(order.cargoWeightTonnes) <= maxCargo;
   });
 
   if (eligibleTrucks.length === 0) {

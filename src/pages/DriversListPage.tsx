@@ -4,15 +4,10 @@ import type { Driver } from "../types/models";
 
 interface DriversListPageProps {
   truckLookup: Record<string, string>;
+  drivers: Driver[];
   onAddDriver: () => void;
   onViewDriver: (driver: Driver) => void;
   onEditDriver: (driver: Driver) => void;
-}
-
-async function fetchDrivers(): Promise<Driver[]> {
-  const res = await fetch("http://localhost:4000/drivers");
-  if (!res.ok) throw new Error("Failed to load drivers");
-  return res.json();
 }
 
 async function deleteDriver(id: number): Promise<void> {
@@ -25,27 +20,21 @@ async function deleteDriver(id: number): Promise<void> {
 
 export default function DriversListPage({
   truckLookup,
+  drivers,
   onAddDriver,
   onViewDriver,
   onEditDriver,
 }: DriversListPageProps) {
-  const [drivers, setDrivers] = useState<Driver[] | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchDrivers()
-      .then(setDrivers)
-      .catch(() => setError("Couldn't load drivers."));
-  }, []);
 
   const handleDelete = async (id: number) => {
     setDeletingId(id);
     setError(null);
     try {
       await deleteDriver(id);
-      setDrivers((prev) => prev?.filter((d) => d.id !== id) ?? prev);
+      // Note: Parent should reload drivers after delete
     } catch {
       setError("Couldn't delete that driver. Try again.");
     } finally {
@@ -68,9 +57,7 @@ export default function DriversListPage({
         <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
       )}
 
-      {drivers === null ? (
-        <p className="text-sm text-ink-muted">Loading drivers…</p>
-      ) : drivers.length === 0 ? (
+      {drivers.length === 0 ? (
         <p className="text-sm text-ink-muted">No drivers yet. Add your first one to get started.</p>
       ) : (
         <div className="overflow-hidden rounded-xl border border-navy-950/10">

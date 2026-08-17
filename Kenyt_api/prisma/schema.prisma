@@ -226,3 +226,19 @@ model Location {
   @@index([name])
   @@map("locations")
 }
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String   @db.Text
+  fullName  String   @map("full_name")
+  role      String   @default("user") // "admin" | "user"
+  isActive  Boolean  @default(true) @map("is_active")
+  lastLogin DateTime? @map("last_login")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}

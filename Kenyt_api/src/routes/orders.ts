@@ -11,13 +11,27 @@ export default async function orderRoutes(app: FastifyInstance) {
     const body = request.body;
 
     try {
+      const weight = Number(body.weight_tonnes);
+      if (
+        body.weight_tonnes == null ||
+        Number.isNaN(weight) ||
+        weight <= 0 ||
+        weight > 100
+      ) {
+        return reply.status(400).send({
+          error: "invalid_weight",
+          message:
+            "Weight looks incorrect. Enter the cargo weight in TONNES (e.g. 20, not 20000). Maximum supported is 100 tonnes.",
+        });
+      }
+
       const order = await prisma.order.create({
   data: {
     bolNumber: body.bol_number,
 
     customerName: body.customer_name,
 
-    cargoWeightTonnes: body.weight_tonnes,
+    cargoWeightTonnes: weight,
 
     cargoType: body.cargo_type,
 
