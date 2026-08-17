@@ -75,7 +75,7 @@ export default async function userRoutes(app: FastifyInstance) {
     }
   });
 
-  app.get("/users/:id", async (request, reply) => {
+  app.get("/users/:id", async (request: any, reply) => {
     const id = Number(request.params.id);
 
     try {
@@ -104,7 +104,7 @@ export default async function userRoutes(app: FastifyInstance) {
     }
   });
 
-  app.put("/users/:id", async (request, reply) => {
+  app.put("/users/:id", async (request: any, reply) => {
     const id = Number(request.params.id);
     const { email, password, fullName, role, isActive } = request.body as any;
 
@@ -145,12 +145,12 @@ export default async function userRoutes(app: FastifyInstance) {
     }
   });
 
-  app.delete("/users/:id", async (request, reply) => {
+  app.delete("/users/:id", async (request: any, reply) => {
     const id = Number(request.params.id);
 
     try {
       await prisma.user.delete({ where: { id } });
-      return reply.status(204).end();
+      return reply.status(204).send();
     } catch (err) {
       console.error("Failed to delete user:", err);
       return reply.status(500).send({ error: "failed_to_delete_user" });

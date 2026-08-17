@@ -3,6 +3,25 @@
 .env.*
 !.env.example
 
+# Dependencies — NEVER commit these; installed fresh at build time.
+# Committing Windows-installed node_modules breaks Linux/CI builds
+# (the .bin/* shell wrappers lose their executable bit -> "tsc: Permission denied").
+node_modules/
+
+# Build output
+dist/
+build/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Scratch / diagnostic output
+build_check.txt
+tsc_out.txt
+migrate_deploy.txt
+*.out.txt
+
 # IDE / OS
 .vscode/
 .idea/

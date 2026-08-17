@@ -17,7 +17,7 @@ async function ensureSession(): Promise<string> {
     sidObtainedAt = Date.now();
     console.log("[wialon] Login successful.");
   }
-  return sid;
+  return sid!;
 }
 
 async function pollOnce() {
