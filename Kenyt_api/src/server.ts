@@ -27,6 +27,23 @@ async function main() {
   await app.register(allocationRoutes);
   await app.register(userRoutes);
 
+  app.get("/", async () => {
+
+    return {
+      status: "ok",
+      service: "kenyt-api",
+    };
+
+  });
+
+  app.get("/status", async () => {
+
+    return {
+      status: "ok",
+    };
+
+  });
+
   app.get("/health", async () => {
 
     return {
