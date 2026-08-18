@@ -34,6 +34,10 @@ RUN chmod +x node_modules/.bin/*
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
+# Diagnostic: prints the resolved value in the Railway build logs so you can
+# confirm the variable actually reached the Docker build.
+RUN echo "VITE_API_URL is set to: ${VITE_API_URL:-<EMPTY>}"
+
 COPY . .
 RUN npm run build
 
