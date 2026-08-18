@@ -42,10 +42,17 @@ COPY . .
 RUN npm run build
 
 # ---- Runtime stage ----
-# Serve the static build with nginx.
+# Serve the static build with nginx. nginx listens on Railway's $PORT (rendered
+# from a template at startup), which is required for the healthcheck/ingress to
+# reach it.
 FROM nginx:1.27-alpine
 
 COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf.template /etc/nginx/conf.d/default.conf.template
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Informational; the real port is $PORT via the entrypoint (default 8080).
+EXPOSE 8080
+
+CMD ["/docker-entrypoint.sh"]
