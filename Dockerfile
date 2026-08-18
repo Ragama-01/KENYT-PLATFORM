@@ -12,8 +12,10 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Copy manifests first for better layer caching; install deps.
-COPY package*.json ./
-RUN npm install
+# .npmrc carries npm fetch-retry settings (reduces "failed during network
+# process"-style flaky build-builder timeouts on Railway).
+COPY package*.json .npmrc ./
+RUN npm install --no-audit --no-fund
 
 # Quick workaround: restore the executable bit on all locally-installed bins,
 # right after install. Guards against cached layers where .bin/* lost +x
