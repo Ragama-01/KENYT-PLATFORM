@@ -6,7 +6,15 @@
 //   (Railway "Reference Variable" -> backend service's RAILWAY_PUBLIC_DOMAIN).
 //   Vite inlines VITE_* env vars into the bundle at build time.
 // Use || (not ??) so an empty string also falls back to the local dev URL.
-const base = import.meta.env.VITE_API_URL || "http://localhost:4000";
+let base = import.meta.env.VITE_API_URL || "http://localhost:4000";
+
+// Railway's RAILWAY_PUBLIC_DOMAIN reference variable is a BARE domain with no
+// scheme (e.g. "api-name.up.railway.app"). If VITE_API_URL was set from that,
+// prepend https:// so it resolves to an absolute URL (otherwise fetch() treats
+// it as a relative path and hits the wrong host).
+if (base && !/^https?:\/\//i.test(base) && !base.startsWith("/")) {
+  base = `https://${base}`;
+}
 
 // Trailing-slash tolerant so both "https://host" and "https://host/" work.
 export const API_BASE = base.replace(/\/$/, "");
