@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "../components/Button";
+import { API_BASE } from "../lib/api";
 import type { TruckFormValues } from "../types/models";
 
 type TruckRecord = TruckFormValues & { id: number | string };
 
 async function fetchTrucks(): Promise<TruckRecord[]> {
-  const res = await fetch("http://localhost:4000/trucks");
+  const res = await fetch(`${API_BASE}/trucks`);
 
   if (!res.ok) {
     throw new Error(await res.text());
@@ -19,7 +20,7 @@ async function fetchTrucks(): Promise<TruckRecord[]> {
 }
 
 async function deleteTruck(id: TruckRecord["id"]): Promise<void> {
-  const res = await fetch(`http://localhost:4000/trucks/${id}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/trucks/${id}`, { method: "DELETE" });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message ?? "Failed to delete truck");

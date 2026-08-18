@@ -1,0 +1,29 @@
+# Dependencies — NEVER copied from the host/docker context.
+# They must only ever come from `npm install` inside the container.
+# Windows-installed node_modules (with .cmd/.ps1 wrappers and lost +x bits)
+# break Linux/CI builds ("tsc: Permission denied"), so exclude them entirely.
+node_modules/
+Kenyt_api/node_modules/
+
+# Build output
+dist/
+build/
+
+# Local environment & secrets
+.env
+.env.*
+
+# VCS / IDE / OS
+.git
+.gitignore
+.gitattributes
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# TypeScript / diagnostic scratch files
+*.tsbuildinfo
+build_check.txt
+tsc_out.txt
+migrate_deploy.txt

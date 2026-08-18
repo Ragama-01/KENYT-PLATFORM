@@ -14,6 +14,7 @@ import AllocationsListPage from "./pages/AllocationsListPage";
 import UsersListPage from "./pages/UsersListPage";
 import UserForm from "./pages/UserForm";
 
+import { API_BASE } from "./lib/api";
 import type {
   TruckFormValues,
   Driver,
@@ -40,7 +41,7 @@ type UserView =
   | { mode: "list" };
 
 async function loginRequest(email: string, password: string) {
-  const res = await fetch("http://localhost:4000/auth/login", {
+  const res = await fetch(`${API_BASE}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -117,7 +118,7 @@ export default function App() {
   const [users, setUsers] = useState<User[]>([]);
 
   async function loadOrders() {
-    const res = await fetch("http://localhost:4000/orders");
+    const res = await fetch(`${API_BASE}/orders`);
 
     const data = await res.json();
 
@@ -154,7 +155,7 @@ export default function App() {
   );
 
   async function loadTrucks() {
-    const res = await fetch("http://localhost:4000/trucks");
+    const res = await fetch(`${API_BASE}/trucks`);
 
     const data = await res.json();
 
@@ -171,7 +172,7 @@ export default function App() {
   }
 
   async function loadDrivers() {
-    const res = await fetch("http://localhost:4000/drivers");
+    const res = await fetch(`${API_BASE}/drivers`);
 
     const data = await res.json();
 
@@ -195,7 +196,7 @@ export default function App() {
   }
 
   async function loadUsers() {
-    const res = await fetch("http://localhost:4000/users");
+    const res = await fetch(`${API_BASE}/users`);
     if (!res.ok) return;
     const data = await res.json();
     setUsers(data);
@@ -233,8 +234,8 @@ export default function App() {
   }) {
     const isEdit = userView.mode === "form" && userView.user;
     const url = isEdit
-      ? `http://localhost:4000/users/${userView.user!.id}`
-      : "http://localhost:4000/users";
+      ? `${API_BASE}/users/${userView.user!.id}`
+      : `${API_BASE}/users`;
 
     const method = isEdit ? "PUT" : "POST";
 
@@ -254,7 +255,7 @@ export default function App() {
   }
 
   async function handleDeleteUser(id: number) {
-    const res = await fetch(`http://localhost:4000/users/${id}`, {
+    const res = await fetch(`${API_BASE}/users/${id}`, {
       method: "DELETE",
     });
 
@@ -311,8 +312,8 @@ export default function App() {
 
     const res = await fetch(
       id
-        ? `http://localhost:4000/trucks/${id}`
-        : "http://localhost:4000/trucks",
+        ? `${API_BASE}/trucks/${id}`
+        : `${API_BASE}/trucks`,
       {
         method: id ? "PUT" : "POST",
 
@@ -348,8 +349,8 @@ export default function App() {
 
     const res = await fetch(
       id
-        ? `http://localhost:4000/drivers/${id}`
-        : "http://localhost:4000/drivers",
+        ? `${API_BASE}/drivers/${id}`
+        : `${API_BASE}/drivers`,
       {
         method: id ? "PUT" : "POST",
 
@@ -382,7 +383,7 @@ export default function App() {
     values: OrderFormValues
   ) => {
     const res = await fetch(
-      "http://localhost:4000/orders",
+      `${API_BASE}/orders`,
       {
         method: "POST",
 
@@ -416,8 +417,8 @@ export default function App() {
 
     const res = await fetch(
       id
-        ? `http://localhost:4000/orders/${id}`
-        : "http://localhost:4000/orders",
+        ? `${API_BASE}/orders/${id}`
+        : `${API_BASE}/orders`,
       {
         method: id ? "PUT" : "POST",
 
@@ -453,7 +454,7 @@ export default function App() {
     }
   ) => {
     const res = await fetch(
-      "http://localhost:4000/allocations",
+      `${API_BASE}/allocations`,
       {
         method: "POST",
 

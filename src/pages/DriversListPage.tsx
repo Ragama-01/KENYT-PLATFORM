@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "../components/Button";
+import { API_BASE } from "../lib/api";
 import type { Driver } from "../types/models";
 
 interface DriversListPageProps {
@@ -11,7 +12,7 @@ interface DriversListPageProps {
 }
 
 async function deleteDriver(id: number): Promise<void> {
-  const res = await fetch(`http://localhost:4000/drivers/${id}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/drivers/${id}`, { method: "DELETE" });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message ?? "Failed to delete driver");

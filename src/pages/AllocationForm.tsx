@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { SelectField, FieldGroup } from "../components/FormField";
 import { Button } from "../components/Button";
+import { API_BASE } from "../lib/api";
 
 interface OrderOption {
   id: number;
@@ -122,7 +123,7 @@ export default function AllocationForm({
         setSelectedTruckId(null);
 
         const res = await fetch(
-          `http://localhost:4000/allocations/suggest/${selectedOrderId}`
+          `${API_BASE}/allocations/suggest/${selectedOrderId}`
         );
 
         const data = await res.json();

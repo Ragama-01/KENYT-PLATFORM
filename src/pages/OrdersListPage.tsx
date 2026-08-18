@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { Button } from "../components/Button";
+import { API_BASE } from "../lib/api";
 
 type OrderRecord = any;
 
 async function fetchOrders(): Promise<OrderRecord[]> {
-  const res = await fetch("http://localhost:4000/orders");
+  const res = await fetch(`${API_BASE}/orders`);
   if (!res.ok) throw new Error("Failed to load orders");
   return res.json();
 }
 
 async function deleteOrder(id: number): Promise<void> {
-  const res = await fetch(`http://localhost:4000/orders/${id}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/orders/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete order");
 }
 

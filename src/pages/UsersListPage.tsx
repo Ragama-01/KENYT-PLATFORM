@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "../components/Button";
+import { API_BASE } from "../lib/api";
 
 type UserRecord = {
   id: number;
@@ -13,13 +14,13 @@ type UserRecord = {
 };
 
 async function fetchUsers(): Promise<UserRecord[]> {
-  const res = await fetch("http://localhost:4000/users");
+  const res = await fetch(`${API_BASE}/users`);
   if (!res.ok) throw new Error("Failed to load users");
   return res.json();
 }
 
 async function deleteUser(id: number): Promise<void> {
-  const res = await fetch(`http://localhost:4000/users/${id}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/users/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete user");
 }
 

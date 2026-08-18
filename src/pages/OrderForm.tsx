@@ -10,6 +10,7 @@ import {
 } from "../components/FormField";
 
 import { Button } from "../components/Button";
+import { API_BASE } from "../lib/api";
 
 import type {
   OrderFormValues,
@@ -96,7 +97,7 @@ export default function OrderForm({
   >(null);
 
   useEffect(() => {
-    fetch("http://localhost:4000/locations")
+    fetch(`${API_BASE}/locations`)
       .then((r) => r.json())
       .then(setLocations)
       .catch(console.error);

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "../components/Button";
+import { API_BASE } from "../lib/api";
 
 type AllocationRecord = any;
 
 async function fetchAllocations(): Promise<AllocationRecord[]> {
-  const res = await fetch("http://localhost:4000/allocations");
+  const res = await fetch(`${API_BASE}/allocations`);
   if (!res.ok) throw new Error("Failed to load allocations");
   const data = await res.json();
 
@@ -42,7 +43,7 @@ async function fetchAllocations(): Promise<AllocationRecord[]> {
 }
 
 async function deleteAllocation(id: number): Promise<void> {
-  const res = await fetch(`http://localhost:4000/allocations/${id}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/allocations/${id}`, { method: "DELETE" });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message ?? "Failed to delete allocation");
