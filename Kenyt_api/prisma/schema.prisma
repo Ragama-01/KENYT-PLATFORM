@@ -242,3 +242,17 @@ model User {
   @@index([role])
   @@map("users")
 }
+
+model Customer {
+  customerId    Int      @id @default(autoincrement()) @map("customer_id")
+  name          String   @unique
+  contactName   String?  @map("contact_person")
+  phone         String?
+  email         String?
+  address       String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([name])
+  @@map("customers")
+}

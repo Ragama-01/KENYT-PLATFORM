@@ -146,6 +146,25 @@ export interface Location {
   type: string;
 }
 
+export interface Customer {
+  customerId: number;
+  name: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CustomerFormValues {
+  name: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+}
+
 export interface OrderFormValues {
 
   bol_number: string;

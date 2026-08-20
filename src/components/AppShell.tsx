@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type CaptureSection = "trucks" | "drivers" | "orders" | "allocations" | "users";
+export type CaptureSection = "trucks" | "drivers" | "orders" | "allocations" | "customers" | "users";
 
 export type SubAction = "view_all" | "add_new";
 
@@ -45,6 +45,15 @@ const NAV_ITEMS: {
     subMenu: [
       { action: "view_all", label: "View All Drivers" },
       { action: "add_new", label: "Add Driver" },
+    ],
+  },
+  {
+    key: "customers",
+    label: "Customers",
+    hint: "Client directory",
+    subMenu: [
+      { action: "view_all", label: "View All Customers" },
+      { action: "add_new", label: "Add Customer" },
     ],
   },
   {

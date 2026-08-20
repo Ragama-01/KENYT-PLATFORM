@@ -1,0 +1,33 @@
+﻿Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "kenyt_int", schema "public" at "localhost:5432"
+
+14 migrations found in prisma/migrations
+
+Applying migration `20260820093000_add_customers_table`
+
+The following migration(s) have been applied:
+
+migrations/
+  ΓööΓöÇ 20260820093000_add_customers_table/
+    ΓööΓöÇ migration.sql
+      
+All migrations have been successfully applied.
+node : ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓ
+öÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ
+At line:1 char:64
++ ... Kenyt_api"; node node_modules\prisma\build\index.js migrate deploy 2> ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ΓöîΓöÇΓöÇΓöÇΓöÇ...ΓöÇΓöÇΓöÇΓöÇΓöÉ:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Γöé  Update available 5.22.0 -> 7.9.1                       Γöé
+Γöé                                                         Γöé
+Γöé  This is a major update - please follow the guide at    Γöé
+Γöé  https://pris.ly/d/major-version-upgrade                Γöé
+Γöé                                                         Γöé
+Γöé  Run the following to update                            Γöé
+Γöé    npm i --save-dev prisma@latest                       Γöé
+Γöé    npm i @prisma/client@latest                          Γöé
+ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö
+ÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ
