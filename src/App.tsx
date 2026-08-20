@@ -13,12 +13,16 @@ import AllocationForm from "./pages/AllocationForm";
 import AllocationsListPage from "./pages/AllocationsListPage";
 import UsersListPage from "./pages/UsersListPage";
 import UserForm from "./pages/UserForm";
+import CustomerForm from "./pages/CustomerForm";
+import CustomersListPage from "./pages/CustomersListPage";
 
 import { API_BASE } from "./lib/api";
 import type {
   TruckFormValues,
   Driver,
   OrderFormValues,
+  Customer,
+  CustomerFormValues,
 } from "./types/models";
 
 type User = {
@@ -38,6 +42,10 @@ type TruckRecord = TruckFormValues & {
 
 type UserView =
   | { mode: "form"; user?: User }
+  | { mode: "list" };
+
+type CustomerView =
+  | { mode: "form"; customer?: Customer }
   | { mode: "list" };
 
 async function loginRequest(email: string, password: string) {
@@ -105,6 +113,11 @@ export default function App() {
 
   const [userView, setUserView] =
     useState<UserView>({
+      mode: "list",
+    });
+
+  const [customerView, setCustomerView] =
+    useState<CustomerView>({
       mode: "list",
     });
 
@@ -279,6 +292,8 @@ export default function App() {
       setAllocationView({ mode: "list" });
     } else if (newSection === "users") {
       setUserView({ mode: "list" });
+    } else if (newSection === "customers") {
+      setCustomerView({ mode: "list" });
     }
   };
 
@@ -295,6 +310,8 @@ export default function App() {
       setAllocationView(goList ? { mode: "list" } : { mode: "form" });
     } else if (newSection === "users") {
       setUserView(goList ? { mode: "list" } : { mode: "form" });
+    } else if (newSection === "customers") {
+      setCustomerView(goList ? { mode: "list" } : { mode: "form" });
     }
   };
 
@@ -441,6 +458,31 @@ export default function App() {
     setOrderView({
       mode: "list",
     });
+  };
+
+  //---------------------------------------------------------
+  // Customers
+  //---------------------------------------------------------
+
+  const handleSaveCustomer = async (
+    values: CustomerFormValues,
+    id?: number
+  ) => {
+    const res = await fetch(
+      id ? `${API_BASE}/customers/${id}` : `${API_BASE}/customers`,
+      {
+        method: id ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || "Failed to save customer");
+    }
+
+    setCustomerView({ mode: "list" });
   };
 
   //---------------------------------------------------------
@@ -826,6 +868,37 @@ export default function App() {
           setUserView({
             mode: "form",
             user,
+          })
+        }
+      />
+    )}
+
+    {/* Customers */}
+    {section === "customers" && customerView.mode === "form" && (
+      <CustomerForm
+        customer={customerView.customer}
+        onSubmit={(values: CustomerFormValues) =>
+          handleSaveCustomer(values, customerView.customer?.customerId)
+        }
+        onCancel={() =>
+          setCustomerView({
+            mode: "list",
+          })
+        }
+      />
+    )}
+
+    {section === "customers" && customerView.mode === "list" && (
+      <CustomersListPage
+        onAddCustomer={() =>
+          setCustomerView({
+            mode: "form",
+          })
+        }
+        onEditCustomer={(customer) =>
+          setCustomerView({
+            mode: "form",
+            customer,
           })
         }
       />

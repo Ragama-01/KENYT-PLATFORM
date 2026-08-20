@@ -15,6 +15,7 @@ import { API_BASE } from "../lib/api";
 import type {
   OrderFormValues,
   Location,
+  Customer,
 } from "../types/models";
 
 const LOAD_TYPES = [
@@ -91,6 +92,7 @@ export default function OrderForm({
   onViewAll,
 }: Props) {
   const [locations, setLocations] = useState<Location[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
 
   const [submitError, setSubmitError] = useState<
     string | null
@@ -100,6 +102,11 @@ export default function OrderForm({
     fetch(`${API_BASE}/locations`)
       .then((r) => r.json())
       .then(setLocations)
+      .catch(console.error);
+
+    fetch(`${API_BASE}/customers`)
+      .then((r) => r.json())
+      .then(setCustomers)
       .catch(console.error);
   }, []);
 
@@ -140,6 +147,11 @@ export default function OrderForm({
     label: l.name,
   }));
 
+  const customerOptions = customers.map((c) => ({
+    value: c.name,
+    label: c.name,
+  }));
+
   const submit = async (values: OrderFormValues) => {
     try {
       setSubmitError(null);
@@ -178,9 +190,11 @@ export default function OrderForm({
             error={errors.bol_number?.message}
           />
 
-          <TextField
-            label="Customer"
+          <SelectField
             id="customer_name"
+            label="Customer"
+            options={customerOptions}
+            placeholder="Select customer"
             {...register("customer_name")}
             error={errors.customer_name?.message}
           />
