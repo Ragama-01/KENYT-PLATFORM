@@ -15,6 +15,7 @@ import UsersListPage from "./pages/UsersListPage";
 import UserForm from "./pages/UserForm";
 import CustomerForm from "./pages/CustomerForm";
 import CustomersListPage from "./pages/CustomersListPage";
+import ReportsPage from "./pages/ReportsPage";
 
 import { API_BASE } from "./lib/api";
 import type {
@@ -294,6 +295,8 @@ export default function App() {
       setUserView({ mode: "list" });
     } else if (newSection === "customers") {
       setCustomerView({ mode: "list" });
+    } else if (newSection === "reports") {
+      // nothing extra to reset; reports page is single-mode
     }
   };
 
@@ -903,6 +906,9 @@ export default function App() {
         }
       />
     )}
+
+    {/* Reports */}
+    {section === "reports" && <ReportsPage />}
   </AppShell>
 );
 }
