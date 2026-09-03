@@ -9,6 +9,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "reset-admin": "tsx scripts/resetAdminPassword.ts",
+    "email:test": "tsx scripts/testEmail.ts",
     "wialon:once": "tsx src/scripts/fetchTruckLocations.ts --once",
     "wialon:poll": "tsx src/scripts/fetchTruckLocations.ts",
     "wialon:map": "tsx src/scripts/mapControlTechUnits.ts",

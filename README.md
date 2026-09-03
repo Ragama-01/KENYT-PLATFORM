@@ -42,9 +42,19 @@ which reads `VITE_API_URL` (falls back to `http://localhost:4000` locally).
 
 ### Variables to set
 - **Backend service:** `DATABASE_URL` (from the Postgres plugin), plus
-  `WIALON_*`, `CONTROLTECH_*`, `SENDGRID_API_KEY`. Railway injects these at
-  build time so `prisma generate` works; on start the API runs
-  `npx prisma migrate deploy` automatically (see `Kenyt_api/railway.json`).
+  `WIALON_*`, `CONTROLTECH_*`, and for email notifications:
+  - `SENDGRID_API_KEY` — SendGrid API key.
+  - `SUPER_USER_EMAIL` — **required** to receive the "new order awaiting
+    allocation" email whenever an order is created (this is the "super user"
+    notification).
+  - `EMAIL_FROM` — the verified sender address (defaults to
+    `noreply@kenytinternational.com`, which must be verified under SendGrid
+    Sender Authentication or sends will be rejected with HTTP 403).
+  - `TEAM_NOTIFICATION_EMAILS` — comma-separated recipients notified when a
+    truck is allocated (e.g. `a@x.com,b@x.com`).
+
+  Railway injects these at build time so `prisma generate` works; on start the
+  API runs `npx prisma migrate deploy` automatically (see `Kenyt_api/railway.json`).
 - **Frontend service:** `VITE_API_URL` → click **"Use reference"** → pick the
   **backend** service → **`RAILWAY_PUBLIC_DOMAIN`**. The `Dockerfile` accepts it
   as a build `ARG`, and Vite bakes it into the bundle. Redeploy after setting it.

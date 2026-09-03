@@ -5,12 +5,99 @@ if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
-const FROM_EMAIL = process.env.EMAIL_FROM || "noreply@kenytinternational.com";
-const SUPER_USER_EMAIL = process.env.SUPER_USER_EMAIL || "";
-const TEAM_NOTIFICATION_EMAILS = (process.env.TEAM_NOTIFICATION_EMAILS || "")
+// The "From" address for transactional notifications.
+// IMPORTANT: SendGrid will REJECT the send (HTTP 403) unless this address or
+// its domain has been verified under Sender Authentication in the SendGrid
+// dashboard. If no EMAIL_FROM is set we default to the company noreply address,
+// so that domain MUST be verified for order/team emails to be delivered.
+const FROM_EMAIL = (process.env.EMAIL_FROM || "noreply@kenytinternational.com").trim();
+
+// SendGrid will not send from free webmail domains unless that exact address is
+// verified as a Single Sender — so flag it early to avoid confusing "all emails"
+// failures where the real problem is only the From address.
+const WEBMAIL_DOMAINS = [
+  "gmail.com", "googlemail.com", "yahoo.com", "ymail.com", "hotmail.com",
+  "outlook.com", "live.com", "aol.com", "icloud.com", "me.com",
+  "protonmail.com", "proton.me", "zoho.com",
+];
+const fromDomain = (FROM_EMAIL.split("@")[1] || "").toLowerCase();
+if (fromDomain && WEBMAIL_DOMAINS.includes(fromDomain)) {
+  console.warn(
+    `[email] EMAIL_FROM (${FROM_EMAIL}) uses a free webmail domain. SendGrid will REJECT sends ` +
+      "unless that exact address is verified as a Single Sender under Settings -> Sender Authentication. " +
+      "Prefer a verified domain you own (e.g. noreply@kenytinternational.com)."
+  );
+}
+
+// Recipients that receive a notification whenever a new order is created
+// (typically the super user / operators who perform truck allocation).
+// May be a single address or a comma-separated list.
+const SUPER_USER_EMAILS = parseEmails(process.env.SUPER_USER_EMAIL);
+
+if (process.env.SUPER_USER_EMAIL &&
+    (process.env.SUPER_USER_EMAIL || "").split(",").length !== SUPER_USER_EMAILS.length) {
+  console.warn("[email] Dropped one or more invalid address(es) from SUPER_USER_EMAIL.");
+}
+
+// Additional recipients notified once a truck has been allocated. Comma-separated.
+const RAW_TEAM_NOTIFICATION_EMAILS = (process.env.TEAM_NOTIFICATION_EMAILS || "")
   .split(",")
   .map((e) => e.trim())
   .filter(Boolean);
+const TEAM_NOTIFICATION_EMAILS = RAW_TEAM_NOTIFICATION_EMAILS.filter(isValidEmail);
+
+if (RAW_TEAM_NOTIFICATION_EMAILS.length !== TEAM_NOTIFICATION_EMAILS.length) {
+  console.warn(
+    `[email] Dropped ${RAW_TEAM_NOTIFICATION_EMAILS.length - TEAM_NOTIFICATION_EMAILS.length} invalid ` +
+      "address(es) from TEAM_NOTIFICATION_EMAILS. Fix them or those recipients will not get allocation emails."
+  );
+}
+
+/** Simple email-shape check — catches empty / whitespace-padded / typo'd values. */
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+/** Split a comma-separated env list into trimmed, valid email addresses. */
+function parseEmails(raw: string | undefined): string[] {
+  return (raw || "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean)
+    .filter(isValidEmail);
+}
+
+/** Send a single email; one bad/bouncing recipient cannot block the others. */
+async function sendToOne(recipient: string, subject: string, html: string): Promise<void> {
+  try {
+    await sgMail.send({
+      to: recipient,
+      from: FROM_EMAIL,
+      subject,
+      html,
+    });
+    console.log(`[email] Notification sent to: ${recipient}`);
+  } catch (err) {
+    console.error(`[email] Failed to send to ${recipient}:`, err);
+  }
+}
+
+// Log the resolved email configuration at startup so that in Railway logs you
+// can immediately see which environment variables still need to be set.
+console.info(
+  "[email] Config -> super user: " +
+    (SUPER_USER_EMAILS.length
+      ? SUPER_USER_EMAILS.join(", ")
+      : "<NOT SET>") +
+    " | from: " +
+    FROM_EMAIL +
+    " | team: " +
+    (TEAM_NOTIFICATION_EMAILS.length
+      ? TEAM_NOTIFICATION_EMAILS.join(", ")
+      : "<NOT SET>") +
+    " | sendgrid key: " +
+    (process.env.SENDGRID_API_KEY ? "set" : "<NOT SET>")
+);
 
 interface OrderNotificationData {
   orderId: number;
@@ -45,8 +132,11 @@ export async function sendOrderCreatedNotification(
     return;
   }
 
-  if (!SUPER_USER_EMAIL) {
-    console.warn("[email] SUPER_USER_EMAIL not set — skipping order notification.");
+  if (SUPER_USER_EMAILS.length === 0) {
+    console.warn(
+      "[email] SUPER_USER_EMAIL is missing or invalid — skipping order notification. " +
+        "Set a valid SUPER_USER_EMAIL (comma-separated if multiple) in the backend service variables and redeploy."
+    );
     return;
   }
 
@@ -103,16 +193,8 @@ export async function sendOrderCreatedNotification(
     </div>
   `;
 
-  try {
-    await sgMail.send({
-      to: SUPER_USER_EMAIL,
-      from: FROM_EMAIL,
-      subject,
-      html,
-    });
-    console.log(`[email] Order notification sent to ${SUPER_USER_EMAIL}`);
-  } catch (err) {
-    console.error("[email] Failed to send order notification:", err);
+  for (const recipient of SUPER_USER_EMAILS) {
+    await sendToOne(recipient, subject, html);
   }
 }
 
