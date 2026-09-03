@@ -18,11 +18,6 @@ this replicates the exact login flow Control-Tech's own web app uses:
 The poller re-runs steps 1-2 automatically once an hour (sessions can
 expire) and re-runs step 3 every `POLL_INTERVAL_MINUTES`.
 
-## ⚠️ Before you deploy this
-
-**Change your Control-Tech password now.** It was visible in a screenshot
-during setup, so treat it as exposed. Put the new one only in `.env`
-(never commit `.env` or paste it in chat).
 
 ## Setup
 
