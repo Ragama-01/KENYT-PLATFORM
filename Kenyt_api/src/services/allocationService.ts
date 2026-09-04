@@ -169,3 +169,112 @@ export async function findBestTruck(orderId: number, truckId?: number) {
     },
   };
 }
+// ---------------------------------------------------------------------
+// Batch allocation: assign MULTIPLE orders (e.g. two 20ft loads) to
+// ONE truck in a single action. The combined cargo weight must fit the truck's
+// capacity label (via maxCargoForTruck), so a single larger truck can carry
+// two smaller loads at once.
+// ---------------------------------------------------------------------
+export async function allocateBatch(orderIds: number[], truckId: number) {
+  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+    throw new Error("orderIds is required (select at least one order)。");
+  }
+
+  const ids = [...new Set(orderIds)];
+
+  const truck = await prisma.truck.findUnique(
+    { where: { truckId } }
+  );
+
+  if (!truck) throw new Error("Truck not found");
+
+  if (truck.status !== "available") {
+
+    throw new Error("Truck " + truck.registration_number + " is not available (status: " + truck.status + ")..");
+  }
+
+  const orders = await prisma.order.findMany(
+    {
+      where: { orderId: { in: ids } },
+      include: { pickupLocation: true },
+    }
+  );
+
+  if (orders.length !== ids.length) throw new Error("Some of the selected orders were not found..");
+
+  if (orders.some((o) => o.status === "allocated")) {
+    throw new Error("One of the selected orders is already allocated..");
+  }
+
+  let totalWeight = 0;
+
+
+  for (const o of orders) {
+    totalWeight += Number(o.cargoWeightTonnes);
+  }
+
+  const maxCargo = maxCargoForTruck(truck.capacity_tonnes);
+
+
+  if (maxCargo == null) throw new Error("Truck has no declared capacity..");
+
+  if (maxCargo !== Infinity && totalWeight > maxCargo) {
+
+    throw new Error(
+      "Combined load (" + totalWeight.toFixed(2) + " t) exceeds truck capacity (" + maxCargo + " t). Split loads or pick a bigger truck.");
+  }
+
+  for (const o of orders) {
+    if (!o.pickupLocation) throw new Error("Order " + o.bolNumber + " has no pickup location..");
+  }
+
+  const allocations = await prisma.allocation.createMany(
+    {
+      data: orders.map((o) => ({
+        orderId: o.orderId,
+        truckId: truck.truckId,
+      })),
+    }
+  );
+
+  await prisma.order.updateMany(
+    { where: { orderId: { in: ids } }, data: { status: "allocated" } }
+  );
+
+  await prisma.truck.update(
+    { where: { truckId }, data: { status: "assigned" } }
+  );
+
+  try {
+    await sendAllocationNotification(
+      {
+        orderId: orders[0].orderId,
+        bolNumber: orders.map((o) => o.bolNumber).join(", "),
+        customerName: orders[0].customerName,
+        truckRegistration: truck.registration_number,
+        truckCapacity: truck.capacity_tonnes
+          ? String(truck.capacity_tonnes)
+          : null,
+      }
+    );
+  } catch (e) {
+    console.warn({ err: e }, "Allocation completed but notification email failed to send");
+  }
+
+  return {
+    allocations,
+    orders: orders.map((o) => ({
+
+      orderId: o.orderId,
+      bolNumber: o.bolNumber,
+      status: "allocated",
+    })),
+    truck: {
+      truckId: truck.truckId,
+      registration: truck.registration_number,
+      capacity: truck.capacity_tonnes,
+      totalWeight,
+      count: orders.length,
+    },
+  };
+}

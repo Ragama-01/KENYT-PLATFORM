@@ -32,9 +32,7 @@ interface TruckRecommendation {
   trucks: TruckCandidate[];
 }
 
-const schema = z.object({
-  order_id: z.string().min(1, "Select an order"),
-});
+const schema = z.object({});
 
 type AllocationFormValues = z.infer<typeof schema>;
 
@@ -43,7 +41,7 @@ interface AllocationFormProps {
   trucks: any[];
 
   onSubmit: (values: {
-    order_id: number;
+    order_ids: number[];
     truck_id: number;
   }) => Promise<void>;
 }
@@ -53,6 +51,8 @@ export default function AllocationForm({
   trucks,
   onSubmit,
 }: AllocationFormProps) {
+  const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
+
   const [selectedOrderId, setSelectedOrderId] = useState("");
 
   const [recommendation, setRecommendation] =
@@ -96,12 +96,50 @@ export default function AllocationForm({
 
   // Auto-select the first pending order when orders load
   useEffect(() => {
-    if (!selectedOrderId && orders.length > 0) {
-      const firstOrderId = String(orders[0].id);
-      setSelectedOrderId(firstOrderId);
-      setValue("order_id", firstOrderId);
+    if (selectedOrderIds.length === 0 && orders.length > 0) {
+      const firstOrderId = orders[0].id;
+      setSelectedOrderIds([firstOrderId]);
+      setSelectedOrderId(String(firstOrderId));
     }
-  }, [orders, selectedOrderId, setValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders]);
+
+  //-----------------------------------------------------
+  // Combined weight of all selected orders
+  //-----------------------------------------------------
+
+  const selectedOrders = orders.filter((o) =>
+    selectedOrderIds.includes(o.id)
+  );
+
+  const combinedWeight = selectedOrders.reduce(
+    (sum, o) => sum + Number(o.cargoWeightTonnes),
+    0
+  );
+
+  //-----------------------------------------------------
+  // Toggle an order in/out of the batch selection
+  //-----------------------------------------------------
+
+  const handleOrderToggle = (orderId: number) => {
+    setSelectedOrderIds((prev) => {
+      const next = prev.includes(orderId)
+        ? prev.filter((id) => id !== orderId)
+        : [...prev, orderId];
+
+      // Recommendation endpoint works per-order; use it when
+      // exactly one order is selected.
+      setSelectedOrderId(
+        next.length === 1 ? String(next[0]) : ""
+      );
+
+      return next;
+    });
+
+    setRecommendationError(null);
+    setSelectedTruckId(null);
+    setRecommendation(null);
+  };
 
   //-----------------------------------------------------
   // Load recommendation
@@ -158,19 +196,6 @@ export default function AllocationForm({
   }, [selectedOrderId]);
 
   //-----------------------------------------------------
-  // Order changed
-  //-----------------------------------------------------
-
-  const handleOrderChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    setSelectedOrderId(e.target.value);
-    setRecommendationError(null);
-
-    setValue("order_id", e.target.value);
-  };
-
-  //-----------------------------------------------------
   // Helpers
   //-----------------------------------------------------
 
@@ -216,13 +241,18 @@ export default function AllocationForm({
       return;
     }
 
+    if (selectedOrderIds.length === 0) {
+      return;
+    }
+
     await onSubmit({
-      order_id: Number(values.order_id),
+      order_ids: selectedOrderIds,
       truck_id: selectedTruckId,
     });
 
     reset();
 
+    setSelectedOrderIds([]);
     setSelectedOrderId("");
     setSelectedTruckId(null);
     setRecommendation(null);
@@ -251,23 +281,145 @@ export default function AllocationForm({
         onSubmit={handleSubmit(submit)}
         className="flex flex-col gap-8"
       >
-        <FieldGroup title="Order">
-          <SelectField
-            id="order_id"
-            label="Pending Orders"
-            placeholder="Select an order"
-            options={orderOptions}
-            error={errors.order_id?.message}
-            {...register("order_id")}
-            onChange={handleOrderChange}
-          />
+        <FieldGroup title="Orders">
+          <p className="text-sm text-ink-muted">
+            Tick one or more orders to assign them to the same
+            truck (e.g. two 20ft containers on one truck). The
+            combined weight must fit the truck's capacity.
+          </p>
+
+          <div className="space-y-2">
+            {orderOptions.length === 0 && (
+              <p className="text-sm text-ink-muted">
+                No pending orders.
+              </p>
+            )}
+
+            {orderOptions.map((opt) => {
+              const order = orders.find(
+                (o) => String(o.id) === opt.value
+              )!;
+              const isChecked = selectedOrderIds.includes(
+                order.id
+              );
+
+              return (
+                <label
+                  key={opt.value}
+                  className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                    isChecked
+                      ? "border-green-600 bg-green-50"
+                      : "border-navy-950/10 bg-white hover:border-navy-950/30"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() =>
+                      handleOrderToggle(order.id)
+                    }
+                    className="h-4 w-4 text-green-600"
+                  />
+
+                  <div className="flex-1">
+                    <div className="font-semibold text-ink">
+                      {order.bolNumber}
+                    </div>
+                    <div className="text-sm text-ink-muted">
+                      {order.consigneeName} •{" "}
+                      {Number(order.cargoWeightTonnes)} t
+                    </div>
+                  </div>
+
+                  {isChecked && (
+                    <span className="text-green-700 font-semibold text-sm">
+                      ✔ Selected
+                    </span>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+
+          {selectedOrderIds.length > 0 && (
+            <div className="rounded-lg border p-4 bg-white">
+              <div className="text-sm text-ink">
+                <strong>
+                  {selectedOrderIds.length} order
+                  {selectedOrderIds.length > 1 ? "s" : ""}{" "}
+                  selected
+                </strong>{" "}
+                — combined load:{" "}
+                <strong>{combinedWeight.toFixed(2)} t</strong>
+              </div>
+            </div>
+          )}
         </FieldGroup>
 
         <FieldGroup title="Recommended Trucks">
-          {!selectedOrderId && (
+          {selectedOrderIds.length === 0 && (
             <p className="text-sm text-ink-muted">
               Select an order first.
             </p>
+          )}
+
+          {selectedOrderIds.length > 1 && (
+            <div className="space-y-3">
+              <div className="rounded-lg border p-4 bg-white">
+                <div className="text-sm text-ink">
+                  <strong>Batch allocation:</strong>{" "}
+                  {selectedOrderIds.length} orders •{" "}
+                  {combinedWeight.toFixed(2)} t combined — pick
+                  a truck with enough capacity.
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {trucks
+                  .filter((t) => t.status === "available")
+                  .map((t) => {
+                    const isSelected =
+                      selectedTruckId === t.truckId;
+
+                    return (
+                      <label
+                        key={t.truckId}
+                        className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                          isSelected
+                            ? "border-green-600 bg-green-50"
+                            : "border-navy-950/10 bg-white hover:border-navy-950/30"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="truck_batch"
+                          checked={isSelected}
+                          onChange={() =>
+                            handleTruckSelect(t.truckId)
+                          }
+                          className="h-4 w-4 text-green-600"
+                        />
+
+                        <div className="flex-1">
+                          <div className="font-semibold text-ink">
+                            {t.registration_number}
+                          </div>
+                          <div className="text-sm text-ink-muted">
+                            Capacity:{" "}
+                            {t.capacity_tonnes} tonnes
+                          </div>
+                        </div>
+
+                        {isSelected && (
+                          <span className="text-green-700 font-semibold text-sm">
+                            ✔ Selected
+                          </span>
+                        )}
+                      </label>
+                    );
+                  })}
+              </div>
+            </div>
           )}
 
           {loadingRecommendation && (

@@ -494,12 +494,14 @@ export default function App() {
 
   const handleAllocate = async (
     values: {
-      order_id: number;
+      order_ids: number[];
       truck_id: number;
     }
   ) => {
+    const multi = values.order_ids.length > 1;
+
     const res = await fetch(
-      `${API_BASE}/allocations`,
+      `${API_BASE}/allocations${multi ? "/batch" : ""}`,
       {
         method: "POST",
 
@@ -507,10 +509,17 @@ export default function App() {
           "Content-Type": "application/json",
         },
 
-        body: JSON.stringify({
-          orderId: values.order_id,
-          truckId: values.truck_id,
-        }),
+        body: JSON.stringify(
+          multi
+            ? {
+                orderIds: values.order_ids,
+                truckId: values.truck_id,
+              }
+            : {
+                orderId: values.order_ids[0],
+                truckId: values.truck_id,
+              }
+        ),
       }
     );
 
