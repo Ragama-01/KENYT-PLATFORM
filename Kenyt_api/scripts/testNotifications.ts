@@ -8,7 +8,7 @@ import {
 // truck allocation) so we can confirm notifications are delivered end-to-end.
 //
 // Usage: npx tsx scripts/testNotifications.ts
-// Requires SENDGRID_API_KEY, EMAIL_FROM, SUPER_USER_EMAIL and
+// Requires SMTP_USER, SMTP_PASS, SUPER_USER_EMAIL and
 // TEAM_NOTIFICATION_EMAILS in .env.
 
 async function main(): Promise<void> {

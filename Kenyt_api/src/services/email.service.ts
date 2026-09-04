@@ -1,33 +1,44 @@
-import sgMail from "@sendgrid/mail";
+import nodemailer from "nodemailer";
 
-// Configure SendGrid with the API key from environment variables
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
+// ---------------------------------------------------------------------------
+// Gmail SMTP transport
+// ---------------------------------------------------------------------------
+// Emails are sent through Gmail's SMTP servers using a Gmail account + App
+// Password (NOT the account's normal login password). This avoids the
+// SpamCop-listed shared-IP blocks that SendGrid's shared pool was hitting.
+//
+// Required environment variables:
+//   SMTP_USER  — the Gmail address to send from (e.g. kenyt.notifications@gmail.com)
+//   SMTP_PASS  — a 16-character Gmail App Password
+//                (Google Account -> Security -> 2-Step Verification -> App passwords)
+// Optional:
+//   SMTP_HOST  — defaults to smtp.gmail.com (use smtp-relay.gmail.com for
+//                Google Workspace SMTP relay)
+//   SMTP_PORT  — defaults to 465 (implicit TLS)
+//   EMAIL_FROM — display/from address; MUST be SMTP_USER itself or an alias
+//                verified in that Gmail account, otherwise Gmail rewrites it.
+// ---------------------------------------------------------------------------
 
-// The "From" address for transactional notifications.
-// IMPORTANT: SendGrid will REJECT the send (HTTP 403) unless this address or
-// its domain has been verified under Sender Authentication in the SendGrid
-// dashboard. If no EMAIL_FROM is set we default to the company noreply address,
-// so that domain MUST be verified for order/team emails to be delivered.
-const FROM_EMAIL = (process.env.EMAIL_FROM || "noreply@kenytinternational.com").trim();
-
-// SendGrid will not send from free webmail domains unless that exact address is
-// verified as a Single Sender — so flag it early to avoid confusing "all emails"
-// failures where the real problem is only the From address.
-const WEBMAIL_DOMAINS = [
-  "gmail.com", "googlemail.com", "yahoo.com", "ymail.com", "hotmail.com",
-  "outlook.com", "live.com", "aol.com", "icloud.com", "me.com",
-  "protonmail.com", "proton.me", "zoho.com",
-];
-const fromDomain = (FROM_EMAIL.split("@")[1] || "").toLowerCase();
-if (fromDomain && WEBMAIL_DOMAINS.includes(fromDomain)) {
+if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
   console.warn(
-    `[email] EMAIL_FROM (${FROM_EMAIL}) uses a free webmail domain. SendGrid will REJECT sends ` +
-      "unless that exact address is verified as a Single Sender under Settings -> Sender Authentication. " +
-      "Prefer a verified domain you own (e.g. noreply@kenytinternational.com)."
+    "[email] SMTP_USER / SMTP_PASS not set — email notifications are DISABLED. " +
+      "Set both (Gmail address + App Password) to enable them."
   );
 }
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: Number(process.env.SMTP_PORT || 465),
+  secure: Number(process.env.SMTP_PORT || 465) === 465,
+  auth: {
+    user: process.env.SMTP_USER || "",
+    pass: process.env.SMTP_PASS || "",
+  },
+});
+
+// Gmail will only send from the authenticated account (or one of its verified
+// aliases) — anything else gets rewritten to the authenticated user anyway.
+const FROM_EMAIL = (process.env.EMAIL_FROM || process.env.SMTP_USER || "").trim();
 
 // Recipients that receive a notification whenever a new order is created
 // (typically the super user / operators who perform truck allocation).
@@ -70,9 +81,9 @@ function parseEmails(raw: string | undefined): string[] {
 /** Send a single email; one bad/bouncing recipient cannot block the others. */
 async function sendToOne(recipient: string, subject: string, html: string): Promise<void> {
   try {
-    await sgMail.send({
-      to: recipient,
+    await transporter.sendMail({
       from: FROM_EMAIL,
+      to: recipient,
       subject,
       html,
     });
@@ -95,8 +106,10 @@ console.info(
     (TEAM_NOTIFICATION_EMAILS.length
       ? TEAM_NOTIFICATION_EMAILS.join(", ")
       : "<NOT SET>") +
-    " | sendgrid key: " +
-    (process.env.SENDGRID_API_KEY ? "set" : "<NOT SET>")
+    " | smtp user: " +
+    (process.env.SMTP_USER || "<NOT SET>") +
+    " | smtp pass: " +
+    (process.env.SMTP_PASS ? "set" : "<NOT SET>")
 );
 
 interface OrderNotificationData {
@@ -127,8 +140,8 @@ interface AllocationNotificationData {
 export async function sendOrderCreatedNotification(
   data: OrderNotificationData
 ): Promise<void> {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.warn("[email] SENDGRID_API_KEY not set — skipping order notification.");
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn("[email] SMTP_USER / SMTP_PASS not set — skipping order notification.");
     return;
   }
 
@@ -205,8 +218,8 @@ export async function sendOrderCreatedNotification(
 export async function sendAllocationNotification(
   data: AllocationNotificationData
 ): Promise<void> {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.warn("[email] SENDGRID_API_KEY not set — skipping allocation notification.");
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn("[email] SMTP_USER / SMTP_PASS not set — skipping allocation notification.");
     return;
   }
 
@@ -255,9 +268,9 @@ export async function sendAllocationNotification(
   // cannot block notifications from reaching the others.
   for (const recipient of TEAM_NOTIFICATION_EMAILS) {
     try {
-      await sgMail.send({
-        to: recipient,
+      await transporter.sendMail({
         from: FROM_EMAIL,
+        to: recipient,
         subject,
         html,
       });

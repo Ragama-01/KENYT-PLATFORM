@@ -42,14 +42,19 @@ which reads `VITE_API_URL` (falls back to `http://localhost:4000` locally).
 
 ### Variables to set
 - **Backend service:** `DATABASE_URL` (from the Postgres plugin), plus
-  `WIALON_*`, `CONTROLTECH_*`, and for email notifications:
-  - `SENDGRID_API_KEY` — SendGrid API key.
+  `WIALON_*`, `CONTROLTECH_*`, and for email notifications (sent via Gmail SMTP):
+  - `SMTP_USER` — the Gmail account that sends the notifications
+    (e.g. `kenyt.notifications@gmail.com`).
+  - `SMTP_PASS` — a **Gmail App Password** (16 characters) for that account —
+    create it under Google Account → Security → 2-Step Verification →
+    App passwords. Do **not** use the Gmail login password.
+  - `SMTP_HOST` / `SMTP_PORT` — optional; default to `smtp.gmail.com` / `465`.
+    (Use `smtp-relay.gmail.com` if you switch to Google Workspace SMTP relay.)
   - `SUPER_USER_EMAIL` — **required** to receive the "new order awaiting
     allocation" email whenever an order is created (this is the "super user"
     notification).
-  - `EMAIL_FROM` — the verified sender address (defaults to
-    `noreply@kenytinternational.com`, which must be verified under SendGrid
-    Sender Authentication or sends will be rejected with HTTP 403).
+  - `EMAIL_FROM` — optional; defaults to `SMTP_USER`. Gmail only permits sending
+    from the authenticated account or one of its verified aliases.
   - `TEAM_NOTIFICATION_EMAILS` — comma-separated recipients notified when a
     truck is allocated (e.g. `a@x.com,b@x.com`).
 
