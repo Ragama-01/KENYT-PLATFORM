@@ -10,6 +10,7 @@
     "start": "node dist/server.js",
     "reset-admin": "tsx scripts/resetAdminPassword.ts",
     "email:test": "tsx scripts/testEmail.ts",
+    "gmail:auth": "tsx scripts/getGmailRefreshToken.ts",
     "wialon:once": "tsx src/scripts/fetchTruckLocations.ts --once",
     "wialon:poll": "tsx src/scripts/fetchTruckLocations.ts",
     "wialon:map": "tsx src/scripts/mapControlTechUnits.ts",
@@ -24,12 +25,10 @@
     "bcrypt": "^6.0.0",
     "dotenv": "^16.4.5",
     "fastify": "^4.28.1",
-    "nodemailer": "^10.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.14.15",
-    "@types/nodemailer": "^8.0.1",
     "prisma": "^5.20.0",
     "tsx": "^4.19.0",
     "typescript": "^5.5.4"

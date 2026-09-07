@@ -1,44 +1,34 @@
-import nodemailer from "nodemailer";
+import { isGmailApiConfigured, sendViaGmailApi } from "./gmail.client";
 
 // ---------------------------------------------------------------------------
-// Gmail SMTP transport
+// Gmail REST API transport (HTTPS — no SMTP)
 // ---------------------------------------------------------------------------
-// Emails are sent through Gmail's SMTP servers using a Gmail account + App
-// Password (NOT the account's normal login password). This avoids the
-// SpamCop-listed shared-IP blocks that SendGrid's shared pool was hitting.
+// Emails are sent over HTTPS via Google's Gmail API instead of smtp.gmail.com.
+// This avoids the port 465/587 blocking, handshake timeouts and connection
+// drops that plague SMTP sends from hosting platforms (Railway, etc.).
 //
-// Required environment variables:
-//   SMTP_USER  — the Gmail address to send from (e.g. kenyt.notifications@gmail.com)
-//   SMTP_PASS  — a 16-character Gmail App Password
-//                (Google Account -> Security -> 2-Step Verification -> App passwords)
+// Required environment variables (generate the refresh token once with
+// `npm run gmail:auth`):
+//   GMAIL_CLIENT_ID      — OAuth2 client ID (Google Cloud Console -> Credentials)
+//   GMAIL_CLIENT_SECRET  — OAuth2 client secret
+//   GMAIL_REFRESH_TOKEN  — long-lived refresh token for the sender account
+//   GMAIL_USER           — the Gmail address to send from
 // Optional:
-//   SMTP_HOST  — defaults to smtp.gmail.com (use smtp-relay.gmail.com for
-//                Google Workspace SMTP relay)
-//   SMTP_PORT  — defaults to 465 (implicit TLS)
-//   EMAIL_FROM — display/from address; MUST be SMTP_USER itself or an alias
+//   EMAIL_FROM — display/from address; MUST be GMAIL_USER itself or an alias
 //                verified in that Gmail account, otherwise Gmail rewrites it.
 // ---------------------------------------------------------------------------
 
-if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+if (!isGmailApiConfigured()) {
   console.warn(
-    "[email] SMTP_USER / SMTP_PASS not set — email notifications are DISABLED. " +
-      "Set both (Gmail address + App Password) to enable them."
+    "[email] GMAIL_CLIENT_ID / GMAIL_CLIENT_SECRET / GMAIL_REFRESH_TOKEN / GMAIL_USER " +
+      "not fully set — email notifications are DISABLED. " +
+      "Run `npm run gmail:auth` to generate the refresh token and set all four variables."
   );
 }
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT || 465),
-  secure: Number(process.env.SMTP_PORT || 465) === 465,
-  auth: {
-    user: process.env.SMTP_USER || "",
-    pass: process.env.SMTP_PASS || "",
-  },
-});
-
 // Gmail will only send from the authenticated account (or one of its verified
 // aliases) — anything else gets rewritten to the authenticated user anyway.
-const FROM_EMAIL = (process.env.EMAIL_FROM || process.env.SMTP_USER || "").trim();
+const FROM_EMAIL = (process.env.EMAIL_FROM || process.env.GMAIL_USER || "").trim();
 
 // Recipients that receive a notification whenever a new order is created
 // (typically the super user / operators who perform truck allocation).
@@ -81,13 +71,10 @@ function parseEmails(raw: string | undefined): string[] {
 /** Send a single email; one bad/bouncing recipient cannot block the others. */
 async function sendToOne(recipient: string, subject: string, html: string): Promise<void> {
   try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: recipient,
-      subject,
-      html,
-    });
-    console.log(`[email] Notification sent to: ${recipient}`);
+    const info = await sendViaGmailApi(recipient, subject, html, FROM_EMAIL);
+    console.log(
+      `[email] Notification sent to: ${recipient} (gmail id: ${info.id || "n/a"})`
+    );
   } catch (err) {
     console.error(`[email] Failed to send to ${recipient}:`, err);
   }
@@ -106,10 +93,12 @@ console.info(
     (TEAM_NOTIFICATION_EMAILS.length
       ? TEAM_NOTIFICATION_EMAILS.join(", ")
       : "<NOT SET>") +
-    " | smtp user: " +
-    (process.env.SMTP_USER || "<NOT SET>") +
-    " | smtp pass: " +
-    (process.env.SMTP_PASS ? "set" : "<NOT SET>")
+    " | gmail user: " +
+    (process.env.GMAIL_USER || "<NOT SET>") +
+    " | oauth creds: " +
+    (process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET ? "set" : "<NOT SET>") +
+    " | refresh token: " +
+    (process.env.GMAIL_REFRESH_TOKEN ? "set" : "<NOT SET>")
 );
 
 interface OrderNotificationData {
@@ -140,8 +129,8 @@ interface AllocationNotificationData {
 export async function sendOrderCreatedNotification(
   data: OrderNotificationData
 ): Promise<void> {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn("[email] SMTP_USER / SMTP_PASS not set — skipping order notification.");
+  if (!isGmailApiConfigured()) {
+    console.warn("[email] Gmail API env vars not set — skipping order notification.");
     return;
   }
 
@@ -218,8 +207,8 @@ export async function sendOrderCreatedNotification(
 export async function sendAllocationNotification(
   data: AllocationNotificationData
 ): Promise<void> {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn("[email] SMTP_USER / SMTP_PASS not set — skipping allocation notification.");
+  if (!isGmailApiConfigured()) {
+    console.warn("[email] Gmail API env vars not set — skipping allocation notification.");
     return;
   }
 
@@ -268,13 +257,10 @@ export async function sendAllocationNotification(
   // cannot block notifications from reaching the others.
   for (const recipient of TEAM_NOTIFICATION_EMAILS) {
     try {
-      await transporter.sendMail({
-        from: FROM_EMAIL,
-        to: recipient,
-        subject,
-        html,
-      });
-      console.log(`[email] Allocation notification sent to: ${recipient}`);
+      const info = await sendViaGmailApi(recipient, subject, html, FROM_EMAIL);
+      console.log(
+        `[email] Allocation notification sent to: ${recipient} (gmail id: ${info.id || "n/a"})`
+      );
     } catch (err) {
       console.error(
         `[email] Failed to send allocation notification to ${recipient}:`,

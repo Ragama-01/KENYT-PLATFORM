@@ -10,6 +10,7 @@ import locationRoutes from "./routes/locations";
 import userRoutes from "./routes/users";
 import customerRoutes from "./routes/customers";
 import reportRoutes from "./routes/reports";
+import oauthRoutes from "./routes/oauth.routes";
 import { startWialonPolling } from "./services/wialonPolling.service.js";
 
 const app = Fastify({
@@ -30,6 +31,7 @@ async function main() {
   await app.register(userRoutes);
   await app.register(customerRoutes);
   await app.register(reportRoutes);
+  await app.register(oauthRoutes);
 
   app.get("/", async () => {
 

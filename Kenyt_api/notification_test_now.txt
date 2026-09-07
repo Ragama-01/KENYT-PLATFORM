@@ -1,0 +1,7 @@
+﻿[email] Config -> super user: ragamaanne3@gmail.com | from: ragamaannea@gmail.com | team: charity@kenytinternational.com, anne@kenytinternational.com | smtp user: ragamaannea@gmail.com | smtp pass: set
+--- Testing sendOrderCreatedNotification ---
+[email] Notification sent to: ragamaanne3@gmail.com
+--- Testing sendAllocationNotification ---
+[email] Allocation notification sent to: charity@kenytinternational.com
+[email] Allocation notification sent to: anne@kenytinternational.com
+--- Done. Check inboxes (and spam). ---

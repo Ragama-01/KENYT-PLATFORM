@@ -1,0 +1,14 @@
+[email:test] Resolved config:
+  SMTP_HOST        : smtp.gmail.com
+  SMTP_USER        : ragamaannea@gmail.com
+  SMTP_PASS        : kbhj kzek amfr gbpi
+  EMAIL_FROM       : ragamaannea@gmail.com
+  SUPER_USER_EMAIL : ragamaanne3@gmail.com
+  TEAM             : charity@kenytinternational.com,anne@kenytinternational.com
+✅ SMTP login succeeded.
+
+Sending a test email from ragamaannea@gmail.com to charles@kenytinternational.com ...
+✅ Gmail accepted the send to charles@kenytinternational.com (id: <f4bf944c-55ac-704b-5025-f328d8b405c4@gmail.com>). Check that inbox (and spam).
+
+Sending a test email from ragamaannea@gmail.com to ragamaanne3@gmail.com ...
+✅ Gmail accepted the send to ragamaanne3@gmail.com (id: <3abb465c-236f-d18e-3c82-dc8934a6f54c@gmail.com>). Check that inbox (and spam).

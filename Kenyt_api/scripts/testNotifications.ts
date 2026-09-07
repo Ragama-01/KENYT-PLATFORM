@@ -8,8 +8,8 @@ import {
 // truck allocation) so we can confirm notifications are delivered end-to-end.
 //
 // Usage: npx tsx scripts/testNotifications.ts
-// Requires SMTP_USER, SMTP_PASS, SUPER_USER_EMAIL and
-// TEAM_NOTIFICATION_EMAILS in .env.
+// Requires GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_USER,
+// SUPER_USER_EMAIL and TEAM_NOTIFICATION_EMAILS in .env.
 
 async function main(): Promise<void> {
   console.log("--- Testing sendOrderCreatedNotification ---");

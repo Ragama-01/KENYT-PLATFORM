@@ -42,18 +42,28 @@ which reads `VITE_API_URL` (falls back to `http://localhost:4000` locally).
 
 ### Variables to set
 - **Backend service:** `DATABASE_URL` (from the Postgres plugin), plus
-  `WIALON_*`, `CONTROLTECH_*`, and for email notifications (sent via Gmail SMTP):
-  - `SMTP_USER` — the Gmail account that sends the notifications
+  `WIALON_*`, `CONTROLTECH_*`, and for email notifications (sent via the Gmail
+  REST API over HTTPS — no SMTP):
+  - `GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET` — OAuth2 client credentials from
+    Google Cloud Console (APIs & Services → enable **Gmail API**, then
+    Credentials → Create OAuth client ID → *Web application*). Add **both**
+    redirect URIs:
+    - `http://localhost:53682/oauth2callback` — for the local
+      `npm run gmail:auth` script
+    - `https://<your-backend>.up.railway.app/oauth2callback` — for the Railway
+      flow: deploy, then open `https://<your-backend>.up.railway.app/gmail/auth`
+      in a browser (with `GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET` /
+      `GMAIL_USER` already set on the Railway service) and copy the refresh
+      token the callback page shows.
+  - `GMAIL_REFRESH_TOKEN` — long-lived token generated **once** by running
+    `npm run gmail:auth` in `Kenyt_api/` and approving the consent screen with
+    the sender account.
+  - `GMAIL_USER` — the Gmail account that sends the notifications
     (e.g. `kenyt.notifications@gmail.com`).
-  - `SMTP_PASS` — a **Gmail App Password** (16 characters) for that account —
-    create it under Google Account → Security → 2-Step Verification →
-    App passwords. Do **not** use the Gmail login password.
-  - `SMTP_HOST` / `SMTP_PORT` — optional; default to `smtp.gmail.com` / `465`.
-    (Use `smtp-relay.gmail.com` if you switch to Google Workspace SMTP relay.)
   - `SUPER_USER_EMAIL` — **required** to receive the "new order awaiting
     allocation" email whenever an order is created (this is the "super user"
     notification).
-  - `EMAIL_FROM` — optional; defaults to `SMTP_USER`. Gmail only permits sending
+  - `EMAIL_FROM` — optional; defaults to `GMAIL_USER`. Gmail only permits sending
     from the authenticated account or one of its verified aliases.
   - `TEAM_NOTIFICATION_EMAILS` — comma-separated recipients notified when a
     truck is allocated (e.g. `a@x.com,b@x.com`).
