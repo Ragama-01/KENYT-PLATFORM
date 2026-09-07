@@ -89,6 +89,28 @@ export default function App() {
   const [authed, setAuthed] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
+  // Google sign-in callback: the backend redirects back here with the user
+  // payload (?google_user=...) or an error code (?google_error=...).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const googleUser = params.get("google_user");
+    const googleError = params.get("google_error");
+    if (!googleUser && !googleError) return;
+
+    if (googleUser) {
+      try {
+        const user = JSON.parse(
+          atob(googleUser.replace(/-/g, "+").replace(/_/g, "/"))
+        ) as User;
+        setCurrentUser(user);
+        setAuthed(true);
+      } catch {
+        // fall through to the error case below
+      }
+    }
+    window.history.replaceState({}, "", window.location.pathname);
+  }, []);
+
   const [section, setSection] =
     useState<CaptureSection>("orders");
 

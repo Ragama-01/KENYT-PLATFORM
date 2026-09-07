@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { TextField } from "../components/FormField";
 import { Button } from "../components/Button";
+import { API_BASE } from "../lib/api";
 
 interface LoginPageProps {
   onSubmit: (email: string, password: string) => void | Promise<void>;
@@ -117,6 +118,24 @@ export default function LoginPage({ onSubmit, companyName = "Kenyt International
               {submitting ? "Signing in…" : "Sign in"}
             </Button>
           </form>
+          <div className="mt-6 flex items-center gap-3">
+            <span className="h-px flex-1 bg-ink/10" />
+            <span className="text-xs text-ink-muted">or</span>
+            <span className="h-px flex-1 bg-ink/10" />
+          </div>
+
+          <a
+            href={`${API_BASE}/auth/google`}
+            className="mt-5 flex w-full items-center justify-center gap-3 rounded-md border border-ink/15 bg-white px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-ink/5"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+              <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.02.15 3.5 2.7.24.02c2.2-2 3.5-5 3.5-8.6" />
+              <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2-3.2 0-5.8-2.1-6.8-5l-.14.01-3.6 2.8-.05.13C3.4 21.3 7.4 24 12 24" />
+              <path fill="#FBBC05" d="M5.2 14.4c-.25-.7-.4-1.5-.4-2.4s.14-1.6.4-2.4l-.01-.16-3.66-2.84-.12.06C.5 8.2 0 10 0 12s.5 3.8 1.4 5.3l3.8-2.9" />
+              <path fill="#EA4335" d="M12 4.6c2.3 0 3.8 1 4.7 1.8l3.4-3.3C18 1.2 15.2 0 12 0 7.4 0 3.4 2.7 1.4 6.7l3.8 2.9c1-2.9 3.6-5 6.8-5" />
+            </svg>
+            Sign in with Google
+          </a>
         </div>
       </div>
     </div>
