@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
@@ -32,12 +32,20 @@ const DOCUMENTATION_STATUS_OPTIONS = [
   { value: "on_hold", label: "On Hold" },
 ];
 
+const containerSchema = z.object({
+  container_number: z.string().min(1, "Container number is required"),
+  container_type: z.string().optional(),
+  weight_tonnes: z.coerce
+    .number({ invalid_type_error: "Weight is required" })
+    .positive("Weight must be greater than 0")
+    .max(100, "Weight looks too high - enter tonnes (e.g. 20, not 20000)"),
+  cargo_type: z.string().min(1, "Contents / cargo type is required"),
+});
+
 const schema = z.object({
   bol_number: z.string().min(1, "BOL number is required"),
 
   customer_name: z.string().min(1, "Customer is required"),
-
-  cargo_type: z.string().min(1, "Cargo type is required"),
 
   load_type: z.enum([
     "20/40 dry",
@@ -46,14 +54,7 @@ const schema = z.object({
     "20/40 open reel-special",
   ]),
 
-  weight_tonnes: z.coerce
-    .number({ invalid_type_error: "Weight is required" })
-    .positive("Weight must be greater than 0")
-    .max(100, "Weight looks too high - enter tonnes (e.g. 20, not 20000)"),
-
-  container_number: z.string().optional(),
-
-  container_type: z.string().optional(),
+  containers: z.array(containerSchema).min(1, "Add at least one container"),
 
   pickup_location_id: z.coerce
     .number()
@@ -114,12 +115,28 @@ export default function OrderForm({
     register,
     handleSubmit,
     watch,
+    control,
     formState: {
       errors,
       isSubmitting,
     },
   } = useForm<OrderFormValues>({
     resolver: zodResolver(schema),
+    defaultValues: {
+      containers: [
+        {
+          container_number: "",
+          container_type: "",
+          weight_tonnes: undefined as any,
+          cargo_type: "",
+        },
+      ],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "containers",
   });
 
   const freeDays = watch("free_storage_days");
@@ -199,13 +216,6 @@ export default function OrderForm({
             error={errors.customer_name?.message}
           />
 
-          <TextField
-            label="Cargo Type"
-            id="cargo_type"
-            {...register("cargo_type")}
-            error={errors.cargo_type?.message}
-          />
-
           <SelectField
             id="load_type"
             label="Load Type"
@@ -213,14 +223,6 @@ export default function OrderForm({
             placeholder="Select load type"
             {...register("load_type")}
             error={errors.load_type?.message}
-          />
-
-          <TextField
-            label="Weight (Tonnes)"
-            id="weight_tonnes"
-            type="number"
-            {...register("weight_tonnes")}
-            error={errors.weight_tonnes?.message}
           />
 
           <TextField
@@ -257,18 +259,93 @@ export default function OrderForm({
           />
         </FieldGroup>
 
-        <FieldGroup title="Container">
-          <TextField
-            label="Container Number"
-            id="container_number"
-            {...register("container_number")}
-          />
+        <FieldGroup
+          title="Containers"
+          description="Add each container with its own number, weight and contents. A single order can have multiple containers."
+        >
+          <div className="flex flex-col gap-6">
+            {fields.map((field, index) => (
+              <div
+                key={field.id}
+                className="rounded-lg border border-navy-950/10 p-4"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-ink">
+                    Container #{index + 1}
+                  </span>
+                  {fields.length >  1&& (
+                    <button
+                      type="button"
+                      className="text-sm font-medium text-red-600 hover:underline"
+                      onClick={() => remove(index)}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
 
-          <TextField
-            label="Container Type"
-            id="container_type"
-            {...register("container_type")}
-          />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <TextField
+                    label="Container Number"
+                    id={`containers.${index}.container_number`}
+                    placeholder="e.g. MSKU 1234567"
+                    {...register(`containers.${index}.container_number`)}
+                    error={
+                      errors.containers?.[index]?.container_number?.message
+                    }
+                  />
+
+                  <TextField
+                    label="Container Type"
+                    id={`containers.${index}.container_type`}
+                    placeholder="e.g. 40' Dry, 20' Reefer"
+                    {...register(`containers.${index}.container_type`)}
+                  />
+
+                  <TextField
+                    label="Contents / Cargo Type"
+                    id={`containers.${index}.cargo_type`}
+                    placeholder="e.g. Electronics"
+                    {...register(`containers.${index}.cargo_type`)}
+                    error={errors.containers?.[index]?.cargo_type?.message}
+                  />
+
+                  <TextField
+                    label="Weight (Tonnes)"
+                    id={`containers.${index}.weight_tonnes`}
+                    type="number"
+                    placeholder="e.g. 20"
+                    {...register(`containers.${index}.weight_tonnes`)}
+                    error={errors.containers?.[index]?.weight_tonnes?.message}
+                  />
+                </div>
+              </div>
+            ))}
+
+            {errors.containers && !Array.isArray(errors.containers) && (
+              <p role="alert" className="text-sm font-medium text-red-700">
+                {errors.containers.message}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={() =>
+                append({
+                  container_number: "",
+                  container_type: "",
+                  weight_tonnes: undefined as any,
+                  cargo_type: "",
+                })
+              }
+              className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-navy-950/20 px-4 py-3 text-sm font-medium text-navy-700 hover:border-navy-950/40 hover:bg-navy-50"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-navy-950 text-paper">
+                ＋
+              </span>
+              Add Container
+            </button>
+          </div>
         </FieldGroup>
 
         <FieldGroup title="Locations">

@@ -165,6 +165,13 @@ export interface CustomerFormValues {
   address?: string;
 }
 
+export interface OrderContainerInput {
+  container_number?: string;
+  container_type?: string;
+  weight_tonnes: number;
+  cargo_type: string;
+}
+
 export interface OrderFormValues {
 
   bol_number: string;
@@ -173,13 +180,7 @@ export interface OrderFormValues {
 
   load_type: LoadType;
 
-  cargo_type: string;
-
-  weight_tonnes: number;
-
-  container_number?: string;
-
-  container_type?: string;
+  containers: OrderContainerInput[];
 
   pickup_location_id: number;
 

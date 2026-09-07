@@ -169,6 +169,7 @@ export default function App() {
       load_type: order.loadType,
       container_number: order.containerNumber,
       container_type: order.containerType,
+      containers: order.containers || [],
       pickup_location_id: order.pickupLocation?.locationId,
       delivery_location_id: order.deliveryLocation?.locationId,
       pickup_location_name: order.pickupLocation?.name,

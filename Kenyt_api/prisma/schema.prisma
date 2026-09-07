@@ -183,10 +183,25 @@ model Order {
   createdAt DateTime @default(now())
 
   allocations Allocation[]
+  containers Container[]
 
   @@index([status])
   @@index([pickupLocationId])
   @@index([deliveryLocationId])
+}
+
+model Container {
+  containerId   Int     @id @default(autoincrement())
+  orderId      Int     @map("order_id")
+  containerNumber String @map("container_number")
+  containerType String? @map("container_type")
+  weightTonnes Decimal @map("weight_tonnes") @db.Decimal(8, 2)
+  cargoType   String  @map("cargo_type")
+
+  order Order @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("containers")
 }
 
 model Allocation {
