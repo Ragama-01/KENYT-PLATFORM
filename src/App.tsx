@@ -769,6 +769,40 @@ export default function App() {
               </p>
             </div>
           </div>
+
+          {Array.isArray(orderView.order.containers) &&
+            orderView.order.containers.length >  0&& (
+            <div className="mt-6 border-t border-navy-950/10 pt-6">
+              <h3 className="mb-3 text-sm font-semibold text-ink">
+                Containers
+              </h3>
+              <div className="overflow-hidden rounded-lg border border-navy-950/10">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-navy-950/5 text-xs uppercase tracking-wide text-ink-muted">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">#</th>
+                      <th className="px-3 py-2 font-medium">Container N.o</th>
+                      <th className="px-3 py-2 font-medium">Type</th>
+                      <th className="px-3 py-2 font-medium">Contents</th>
+                      <th className="px-3 py-2 font-medium text-right">Weight (t)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-navy-950/10">
+                    {orderView.order.containers.map((c: any, i: number) => (
+                      <tr key={i}>
+                        <td className="px-3 py-2 text-ink-muted">{i + 1}</td>
+                        <td className="px-3 py-2 font-mono text-ink">{c.containerNumber}</td>
+                        <td className="px-3 py-2 text-ink-muted">{c.containerType || "—"}</td>
+                        <td className="px-3 py-2 text-ink">{c.cargoType}</td>
+                        <td className="px-3 py-2 text-right text-ink">{Number(c.weightTonnes)} t</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           <div className="mt-6 flex gap-3">
             <button
               type="button"

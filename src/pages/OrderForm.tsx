@@ -259,10 +259,12 @@ export default function OrderForm({
           />
         </FieldGroup>
 
-        <FieldGroup
-          title="Containers"
-          description="Add each container with its own number, weight and contents. A single order can have multiple containers."
-        >
+        <FieldGroup title="Containers">
+          <p className="text-sm text-ink-muted">
+            Add each container with its own number, weight and contents. A single
+            order can have multiple containers.
+
+          </p>
           <div className="flex flex-col gap-6">
             {fields.map((field, index) => (
               <div
