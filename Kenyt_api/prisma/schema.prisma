@@ -191,7 +191,7 @@ model Order {
 }
 
 model Container {
-  containerId   Int     @id @default(autoincrement())
+  containerId   Int     @id @default(autoincrement()) @map("container_id")
   orderId      Int     @map("order_id")
   containerNumber String @map("container_number")
   containerType String? @map("container_type")
