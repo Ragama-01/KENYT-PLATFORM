@@ -278,3 +278,171 @@ export async function allocateBatch(orderIds: number[], truckId: number) {
     },
   };
 }
+
+// ---------------------------------------------------------------------
+// Container-level allocation: assign the containers of ONE order to ONE
+// or SEVERAL trucks. Each container records which truck carries it, and an
+// allocation row is created for every distinct truck selected. The combined
+// weight assigned to each truck must fit that truck's capacity.
+// Body: { orderId: number, assignments: [{ containerId, truckId }] }
+// ---------------------------------------------------------------------
+export interface ContainerAssignment {
+  containerId: number;
+  truckId: number;
+}
+
+export async function allocateOrderTrucks(
+  orderId: number,
+  assignments: ContainerAssignment[]
+) {
+  if (!Array.isArray(assignments) || assignments.length === 0) {
+    throw new Error("Assign at least one container to a truck.");
+  }
+
+  const order = await prisma.order.findUnique({
+    where: { orderId },
+    include: { containers: true },
+  });
+
+  if (!order) throw new Error("Order not found");
+  if (order.status === "allocated") {
+    throw new Error("Order is already allocated.");
+  }
+
+  const containers = order.containers;
+
+  if (containers.length === 0) {
+    throw new Error(
+      "This order has no container records. Use the single-truck allocation for legacy (whole-load) orders."
+    );
+  }
+
+  // containerId -> truckId (dedupe; last one wins)
+  const assigned = new Map<number, number>();
+  for (const a of assignments) {
+    if (!containers.some((c) => c.containerId === a.containerId)) {
+      throw new Error(
+        "Container " + a.containerId + " does not belong to this order."
+      );
+    }
+    assigned.set(a.containerId, a.truckId);
+  }
+
+  // Every container must be assigned to a truck
+  for (const c of containers) {
+    if (!assigned.has(c.containerId)) {
+      throw new Error(
+        "Container " + c.containerNumber + " has no truck assigned."
+      );
+    }
+  }
+
+  const truckIds = [...new Set(assigned.values())];
+
+  const trucks = await prisma.truck.findMany({
+    where: { truckId: { in: truckIds } },
+  });
+
+  if (trucks.length !== truckIds.length) {
+    throw new Error("One or more selected trucks were not found.");
+  }
+
+  // Accumulate assigned weight per truck and check availability + capacity
+  const truckIndex = new Map(trucks.map((t) => [t.truckId, t]));
+  const weightByTruck: Record<number, number> = {};
+
+  for (const c of containers) {
+    const tId = assigned.get(c.containerId)!;
+    const truck = truckIndex.get(tId)!;
+
+    if (truck.status !== "available") {
+      throw new Error(
+        "Truck " +
+          truck.registration_number +
+          " is not available (status: " +
+          truck.status +
+          ")."
+      );
+    }
+
+    weightByTruck[tId] =
+      (weightByTruck[tId] || 0) + Number(c.weightTonnes);
+  }
+
+  for (const t of trucks) {
+    const maxCargo = maxCargoForTruck(t.capacity_tonnes);
+    if (maxCargo == null) {
+      throw new Error(
+        "Truck " + t.registration_number + " has no declared capacity."
+      );
+    }
+
+    const load = weightByTruck[t.truckId] || 0;
+    if (maxCargo !== Infinity && load > maxCargo) {
+      throw new Error(
+        "Truck " +
+          t.registration_number +
+          " load (" +
+          load.toFixed(2) +
+          " t) exceeds its capacity (" +
+          maxCargo +
+          " t). Move some containers to another truck."
+      );
+    }
+  }
+
+  // One allocation row per distinct truck
+  await prisma.allocation.createMany({
+    data: truckIds.map((tid) => ({ orderId, truckId: tid })),
+  });
+
+  // Record which truck carries each container
+  for (const c of containers) {
+    await prisma.container.update({
+      where: { containerId: c.containerId },
+      data: { truckId: assigned.get(c.containerId)! },
+    });
+  }
+
+  // Mark order allocated and selected trucks assigned
+  await prisma.order.update({
+    where: { orderId },
+    data: { status: "allocated" },
+  });
+
+  await prisma.truck.updateMany({
+    where: { truckId: { in: truckIds } },
+    data: { status: "assigned" },
+  });
+
+  try {
+    const firstTruck = truckIndex.get(truckIds[0]);
+    await sendAllocationNotification({
+      orderId: order.orderId,
+      bolNumber: order.bolNumber,
+      customerName: order.customerName,
+      truckRegistration: firstTruck
+        ? firstTruck.registration_number
+        : "",
+      truckCapacity:
+        firstTruck && firstTruck.capacity_tonnes
+          ? String(firstTruck.capacity_tonnes)
+          : null,
+    });
+  } catch (e) {
+    console.warn(
+      { err: e },
+      "Allocation completed but notification email failed to send"
+    );
+  }
+
+  return {
+    orderId: order.orderId,
+    containers: containers.map((c) => ({
+      containerId: c.containerId,
+      containerNumber: c.containerNumber,
+      truckId: assigned.get(c.containerId)!,
+    })),
+    trucks: truckIds,
+  };
+}

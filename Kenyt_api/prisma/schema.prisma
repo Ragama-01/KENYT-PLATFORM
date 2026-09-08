@@ -59,6 +59,7 @@ model Truck {
   allocations Allocation[]
   location    TruckLocation?
   trailer     Trailer?
+  containers  Container[]
 
   @@index([status])
   @@index([capacity_tonnes])
@@ -198,9 +199,13 @@ model Container {
   weightTonnes Decimal @map("weight_tonnes") @db.Decimal(8, 2)
   cargoType   String  @map("cargo_type")
 
+  truckId Int? @map("truck_id")
+
   order Order @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  truck Truck? @relation(fields: [truckId], references: [truckId], onDelete: SetNull)
 
   @@index([orderId])
+  @@index([truckId])
   @@map("containers")
 }
 

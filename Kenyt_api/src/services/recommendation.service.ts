@@ -19,6 +19,13 @@ export interface TruckRecommendation {
   pickupLocation: string;
   deliveryLocation: string;
   trucks: TruckCandidate[];
+  containers: Array<{
+    containerId: number;
+    containerNumber: string;
+    containerType: string | null;
+    weightTonnes: number;
+    cargoType: string;
+  }>;
 }
 
 export async function recommendTruck(orderId: number): Promise<TruckRecommendation> {
@@ -30,6 +37,7 @@ export async function recommendTruck(orderId: number): Promise<TruckRecommendati
     include: {
       pickupLocation: true,
       deliveryLocation: true,
+      containers: true,
     },
   });
 
@@ -147,5 +155,12 @@ export async function recommendTruck(orderId: number): Promise<TruckRecommendati
     pickupLocation: order.pickupLocation.name,
     deliveryLocation: order.deliveryLocation?.name ?? "Unknown",
     trucks: candidates,
+    containers: order.containers.map((c) => ({
+      containerId: c.containerId,
+      containerNumber: c.containerNumber,
+      containerType: c.containerType,
+      weightTonnes: Number(c.weightTonnes),
+      cargoType: c.cargoType,
+    })),
   };
 }

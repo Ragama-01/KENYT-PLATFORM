@@ -1,49 +1,53 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { SelectField, FieldGroup } from "../components/FormField";
+import { FieldGroup } from "../components/FormField";
 import { Button } from "../components/Button";
-import { API_BASE } from "../lib/api";
+
+// A transformed order coming from the App (snake_case fields + nested
+// containers list that came back from the /orders API).
+interface ContainerOption {
+  containerId: number;
+  containerNumber: string;
+  containerType: string | null;
+  weightTonnes: number;
+  cargoType: string;
+}
 
 interface OrderOption {
-  id: number;
-  bolNumber: string;
-  cargoWeightTonnes: number;
-  consigneeName: string;
-}
-
-interface TruckCandidate {
-  truckId: number;
-  registration: string;
-  capacity: number;
-  distanceKm: number;
-  currentLocation: string | null;
-  hasExistingOrder: boolean;
-  currentOrderDestination: string | null;
-  lastAllocatedAt: string | null;
-}
-
-interface TruckRecommendation {
   orderId: number;
-  cargoWeightTonnes: number;
-  pickupLocation: string;
-  deliveryLocation: string;
-  trucks: TruckCandidate[];
+  bol_number: string;
+  customer_name: string;
+  weight_tonnes: number;
+  containers: ContainerOption[];
 }
 
-const schema = z.object({});
-
-type AllocationFormValues = z.infer<typeof schema>;
+export type AllocationSubmit =
+  | { kind: "single"; orderId: number; truckId: number }
+  | {
+      kind: "containers";
+      orderId: number;
+      assignments: Array<{ containerId: number; truckId: number }>;
+    };
 
 interface AllocationFormProps {
   orders: OrderOption[];
   trucks: any[];
 
-  onSubmit: (values: {
-    order_ids: number[];
-    truck_id: number;
-  }) => Promise<void>;
+  onSubmit: (payload: AllocationSubmit) => Promise<void>;
+}
+
+/**
+ * Capacity-label rule, mirrors the backend `maxCargoForTruck` util:
+ *   26 t (and below) -> carries <= 20 t
+ *   28 t             -> carries <= 28 t
+ *   above 28 t       -> carries ANY cargo
+ */
+function maxCargo(capacityTonnes: unknown): number | null {
+  if (capacityTonnes == null) return null;
+  const cap = Number(capacityTonnes);
+  if (Number.isNaN(cap) || cap <= 0) return null;
+  if (cap <= 26) return 20;
+  if (cap <= 28) return 28;
+  return Infinity;
 }
 
 export default function AllocationForm({
@@ -51,427 +55,322 @@ export default function AllocationForm({
   trucks,
   onSubmit,
 }: AllocationFormProps) {
-  const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
-
   const [selectedOrderId, setSelectedOrderId] = useState("");
+  // containerId (string) -> truckId (string)
+  const [assignments, setAssignments] = useState<Record<string, string>>({});
+  // Only used for legacy orders that have no container records.
+  const [singleTruckId, setSingleTruckId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [succeeded, setSucceeded] = useState(false);
 
-  const [recommendation, setRecommendation] =
-    useState<TruckRecommendation | null>(null);
+  const order = orders.find((o) => String(o.orderId) === selectedOrderId);
+  const containers = order?.containers ?? [];
 
-  const [selectedTruckId, setSelectedTruckId] = useState<
-    number | null
-  >(null);
+  const availableTrucks = trucks.filter((t) => t.status === "available");
 
-  const [recommendationError, setRecommendationError] =
-    useState<string | null>(null);
+  const canCarry = (truck: any, weight: number): boolean => {
+    const max = maxCargo(truck.capacity_tonnes);
+    if (max == null) return false;
+    return max >= weight;
+  };
 
-  const [loadingRecommendation, setLoadingRecommendation] =
-    useState(false);
+  //-----------------------------------------------------
+  // Auto-select a sensible default when an order is chosen
+  //-----------------------------------------------------
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: {
-      errors,
-      isSubmitting,
-      isSubmitSuccessful,
-    },
-  } = useForm<AllocationFormValues>({
-    resolver: zodResolver(schema),
+  useEffect(() => {
+    const o = orders.find((x) => String(x.orderId) === selectedOrderId);
+    if (!o) {
+      setAssignments({});
+      setSingleTruckId(null);
+      return;
+    }
+
+    // Legacy order with no container records -> fall back to single-truck.
+    if (!o.containers || o.containers.length === 0) {
+      setAssignments({});
+      const fit = availableTrucks.find((t) =>
+        canCarry(t, Number(o.weight_tonnes))
+      );
+      setSingleTruckId(fit ? String(fit.truckId) : null);
+      return;
+    }
+
+    // Container-based allocation: default each container to the first truck
+    // that can carry it on its own.
+    const next: Record<string, string> = {};
+    for (const c of o.containers) {
+      const fit = availableTrucks.find((t) =>
+        canCarry(t, Number(c.weightTonnes))
+      );
+      if (fit) next[String(c.containerId)] = String(fit.truckId);
+    }
+    setAssignments(next);
+    setSingleTruckId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOrderId]);
+// Track the truck that would carry a given container (empty string = none).
+  const handleTruckChange = (containerId: number, truckId: string) => {
+    const key = String(containerId);
+    const next = { ...assignments };
+    next[key] = truckId;
+    setAssignments(next);
+  };
+
+  //-----------------------------------------------------
+  // Live per-truck load summary + over-capacity check
+  //-----------------------------------------------------
+
+  const weightByTruck: Record<string, number> = {};
+  for (const c of containers) {
+    const tid = assignments[String(c.containerId)];
+    if (tid) {
+      weightByTruck[tid] =
+        (weightByTruck[tid] || 0) + Number(c.weightTonnes);
+    }
+  }
+
+  const overCapacity = trucks.some((t) => {
+    const load = weightByTruck[String(t.truckId)] || 0;
+    if (load <= 0) return false;
+    const max = maxCargo(t.capacity_tonnes);
+    return max != null && max !== Infinity && load > max;
   });
 
+  const allAssigned =
+    containers.length > 0 &&
+    containers.every((c) => !!assignments[String(c.containerId)]);
+
+  const selectedTruckIds = new Set(Object.values(assignments));
+
   //-----------------------------------------------------
-  // Orders for dropdown
+  // Submit
   //-----------------------------------------------------
+
+  const submit = async () => {
+    if (!order) return;
+
+    setError(null);
+    setSucceeded(false);
+
+    const payload: AllocationSubmit =
+      containers.length === 0
+        ? {
+            kind: "single",
+            orderId: order.orderId,
+            truckId: Number(singleTruckId),
+          }
+        : {
+            kind: "containers",
+            orderId: order.orderId,
+            assignments: containers.map((c) => ({
+              containerId: c.containerId,
+              truckId: Number(assignments[String(c.containerId)]),
+            })),
+          };
+
+    if (payload.kind === "single" && !singleTruckId) {
+      setError("Select a truck for this load.");
+      return;
+    }
+
+    if (payload.kind === "containers" && !allAssigned) {
+      setError("Assign a truck to every container before allocating.");
+      return;
+    }
+
+    if (overCapacity) {
+      setError(
+        "One of the trucks is over its capacity. Move some containers to another truck."
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onSubmit(payload);
+      setSucceeded(true);
+      setAssignments({});
+      setSingleTruckId(null);
+      setSelectedOrderId("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Allocation failed.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const orderOptions = orders.map((o) => ({
-    value: String(o.id),
-
-    label: `${o.bolNumber} • ${o.consigneeName} (${Number(
-      o.cargoWeightTonnes
+    value: String(o.orderId),
+    label: `${o.bol_number} • ${o.customer_name} (${Number(
+      o.weight_tonnes
     )} t)`,
   }));
-
-  // Auto-select the first pending order when orders load
-  useEffect(() => {
-    if (selectedOrderIds.length === 0 && orders.length > 0) {
-      const firstOrderId = orders[0].id;
-      setSelectedOrderIds([firstOrderId]);
-      setSelectedOrderId(String(firstOrderId));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orders]);
-
-  //-----------------------------------------------------
-  // Combined weight of all selected orders
-  //-----------------------------------------------------
-
-  const selectedOrders = orders.filter((o) =>
-    selectedOrderIds.includes(o.id)
-  );
-
-  const combinedWeight = selectedOrders.reduce(
-    (sum, o) => sum + Number(o.cargoWeightTonnes),
-    0
-  );
-
-  //-----------------------------------------------------
-  // Toggle an order in/out of the batch selection
-  //-----------------------------------------------------
-
-  const handleOrderToggle = (orderId: number) => {
-    setSelectedOrderIds((prev) => {
-      const next = prev.includes(orderId)
-        ? prev.filter((id) => id !== orderId)
-        : [...prev, orderId];
-
-      // Recommendation endpoint works per-order; use it when
-      // exactly one order is selected.
-      setSelectedOrderId(
-        next.length === 1 ? String(next[0]) : ""
-      );
-
-      return next;
-    });
-
-    setRecommendationError(null);
-    setSelectedTruckId(null);
-    setRecommendation(null);
-  };
-
-  //-----------------------------------------------------
-  // Load recommendation
-  //-----------------------------------------------------
-
-  useEffect(() => {
-    if (!selectedOrderId) {
-      setRecommendation(null);
-      setSelectedTruckId(null);
-      setRecommendationError(null);
-      return;
-    }
-
-    async function loadRecommendation() {
-      try {
-        setLoadingRecommendation(true);
-        setRecommendationError(null);
-        setRecommendation(null);
-        setSelectedTruckId(null);
-
-        const res = await fetch(
-          `${API_BASE}/allocations/suggest/${selectedOrderId}`
-        );
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          setRecommendation(null);
-          setSelectedTruckId(null);
-          setRecommendationError(
-            data.error || "No suitable truck found."
-          );
-          return;
-        }
-
-        setRecommendation(data);
-
-        // Auto-select the nearest truck
-        if (data.trucks && data.trucks.length > 0) {
-          setSelectedTruckId(data.trucks[0].truckId);
-        }
-      } catch (err) {
-        setRecommendation(null);
-        setSelectedTruckId(null);
-        setRecommendationError(
-          "Failed to reach the recommendation service."
-        );
-      } finally {
-        setLoadingRecommendation(false);
-      }
-    }
-
-    loadRecommendation();
-  }, [selectedOrderId]);
-
-  //-----------------------------------------------------
-  // Helpers
-  //-----------------------------------------------------
-
-  const formatLastAllocated = (iso: string | null) => {
-    if (!iso) return null;
-
-    const date = new Date(iso);
-    const now = new Date();
-
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return "just now";
-    if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours} hr ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
-
-    return date.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  //-----------------------------------------------------
-  // Truck selected
-  //-----------------------------------------------------
-
-  const handleTruckSelect = (truckId: number) => {
-    setSelectedTruckId(truckId);
-  };
-
-  //-----------------------------------------------------
-  // Allocate
-  //-----------------------------------------------------
-
-  const submit = async (
-    values: AllocationFormValues
-  ) => {
-    if (selectedTruckId == null) {
-      return;
-    }
-
-    if (selectedOrderIds.length === 0) {
-      return;
-    }
-
-    await onSubmit({
-      order_ids: selectedOrderIds,
-      truck_id: selectedTruckId,
-    });
-
-    reset();
-
-    setSelectedOrderIds([]);
-    setSelectedOrderId("");
-    setSelectedTruckId(null);
-    setRecommendation(null);
-    setRecommendationError(null);
-  };
 
   //-----------------------------------------------------
   // UI
   //-----------------------------------------------------
-
-  return (
+return (
     <div>
       <header className="mb-8">
         <h1 className="font-display text-2xl font-semibold text-ink">
-          Allocate Truck
+          Allocate Trucks
         </h1>
 
         <p className="mt-2 text-sm text-ink-muted">
-          Select an order. The system will recommend
-          available trucks capable of carrying the cargo,
-          sorted by distance to the pickup point.
+          Pick an order. If it has more than one container you can assign
+          them to a single truck or spread them across several trucks — each
+          container is carried by the truck you choose for it.
         </p>
       </header>
 
-      <form
-        onSubmit={handleSubmit(submit)}
-        className="flex flex-col gap-8"
-      >
-        <FieldGroup title="Orders">
-          <p className="text-sm text-ink-muted">
-            Tick one or more orders to assign them to the same
-            truck (e.g. two 20ft containers on one truck). The
-            combined weight must fit the truck's capacity.
-          </p>
+      <div className="flex flex-col gap-8">
+        <FieldGroup title="Order">
+          {orders.length === 0 && (
+            <p className="text-sm text-ink-muted">No pending orders.</p>
+          )}
 
-          <div className="space-y-2">
-            {orderOptions.length === 0 && (
-              <p className="text-sm text-ink-muted">
-                No pending orders.
-              </p>
-            )}
+          <select
+            value={selectedOrderId}
+            onChange={(e) => setSelectedOrderId(e.target.value)}
+            className="w-full rounded-lg border border-navy-950/20 bg-white px-3 py-2 text-sm text-ink"
+          >
+            <option value="">Select an order...</option>
+            {orderOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
 
-            {orderOptions.map((opt) => {
-              const order = orders.find(
-                (o) => String(o.id) === opt.value
-              )!;
-              const isChecked = selectedOrderIds.includes(
-                order.id
-              );
-
-              return (
-                <label
-                  key={opt.value}
-                  className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                    isChecked
-                      ? "border-green-600 bg-green-50"
-                      : "border-navy-950/10 bg-white hover:border-navy-950/30"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() =>
-                      handleOrderToggle(order.id)
-                    }
-                    className="h-4 w-4 text-green-600"
-                  />
-
-                  <div className="flex-1">
-                    <div className="font-semibold text-ink">
-                      {order.bolNumber}
-                    </div>
-                    <div className="text-sm text-ink-muted">
-                      {order.consigneeName} •{" "}
-                      {Number(order.cargoWeightTonnes)} t
-                    </div>
-                  </div>
-
-                  {isChecked && (
-                    <span className="text-green-700 font-semibold text-sm">
-                      ✔ Selected
-                    </span>
-                  )}
-                </label>
-              );
-            })}
-          </div>
-
-          {selectedOrderIds.length > 0 && (
-            <div className="rounded-lg border p-4 bg-white">
-              <div className="text-sm text-ink">
-                <strong>
-                  {selectedOrderIds.length} order
-                  {selectedOrderIds.length > 1 ? "s" : ""}{" "}
-                  selected
-                </strong>{" "}
-                — combined load:{" "}
-                <strong>{combinedWeight.toFixed(2)} t</strong>
+          {order && containers.length > 0 && (
+            <div className="mt-3 rounded-lg border p-4 bg-white">
+              <div className="text-sm text-ink-muted">
+                <strong>Containers:</strong> {containers.length} •{" "}
+                <strong>Total:</strong> {Number(order.weight_tonnes)} t
               </div>
             </div>
           )}
         </FieldGroup>
 
-        <FieldGroup title="Recommended Trucks">
-          {selectedOrderIds.length === 0 && (
+        {!order && (
+          <p className="text-sm text-ink-muted">
+            Select an order to begin allocating trucks.
+          </p>
+        )}
+
+        {order && containers.length > 0 && (
+          <FieldGroup title="Assign containers to trucks">
             <p className="text-sm text-ink-muted">
-              Select an order first.
+              Each container can go to a different truck, or all to the same
+              truck. The combined weight on any truck must stay within its
+              capacity.
             </p>
-          )}
 
-          {selectedOrderIds.length > 1 && (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {containers.map((c, i) => {
+                const suitable = availableTrucks.filter((t) =>
+                  canCarry(t, Number(c.weightTonnes))
+                );
+                const current = assignments[String(c.containerId)] || "";
+
+                return (
+                  <div
+                    key={c.containerId}
+                    className="rounded-lg border p-4 bg-white"
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <div className="flex-1">
+                        <div className="font-semibold text-ink">
+                          #{i + 1} {c.containerNumber || "—"}
+                        </div>
+                        <div className="text-sm text-ink-muted">
+                          {c.containerType || "Any type"} •{" "}
+                          {c.cargoType || "n/a"} •{" "}
+                          {Number(c.weightTonnes)} t
+                        </div>
+                      </div>
+
+                      <label className="text-sm font-medium text-ink-muted">
+                        Truck
+                        <select
+                          value={current}
+                          onChange={(e) =>
+                            handleTruckChange(c.containerId, e.target.value)
+                          }
+                          className="block w-56 rounded-lg border border-navy-950/20 bg-white px-2 py-1.5 text-sm text-ink"
+                        >
+                          <option value="">Select truck...</option>
+                          {suitable.map((t) => (
+                            <option
+                              key={t.truckId}
+                              value={String(t.truckId)}
+                            >
+                              {t.registration_number} (
+                              {Number(t.capacity_tonnes)} t)
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {selectedTruckIds.size > 0 && (
               <div className="rounded-lg border p-4 bg-white">
-                <div className="text-sm text-ink">
-                  <strong>Batch allocation:</strong>{" "}
-                  {selectedOrderIds.length} orders •{" "}
-                  {combinedWeight.toFixed(2)} t combined — pick
-                  a truck with enough capacity.
+                <div className="text-sm font-semibold text-ink">
+                  Load summary
                 </div>
-              </div>
-
-              <div className="space-y-2">
                 {trucks
-                  .filter((t) => t.status === "available")
+                  .filter(
+                    (t) => (weightByTruck[String(t.truckId)] || 0) > 0
+                  )
                   .map((t) => {
-                    const isSelected =
-                      selectedTruckId === t.truckId;
-
+                    const load = weightByTruck[String(t.truckId)] || 0;
+                    const max = maxCargo(t.capacity_tonnes);
+                    const fits =
+                      max == null ||
+                      max === Infinity ||
+                      load <= max;
                     return (
-                      <label
+                      <div
                         key={t.truckId}
-                        className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                          isSelected
-                            ? "border-green-600 bg-green-50"
-                            : "border-navy-950/10 bg-white hover:border-navy-950/30"
+                        className={`mt-1 text-sm ${
+                          fits ? "text-ink-muted" : "text-red-600"
                         }`}
                       >
-                        <input
-                          type="radio"
-                          name="truck_batch"
-                          checked={isSelected}
-                          onChange={() =>
-                            handleTruckSelect(t.truckId)
-                          }
-                          className="h-4 w-4 text-green-600"
-                        />
-
-                        <div className="flex-1">
-                          <div className="font-semibold text-ink">
-                            {t.registration_number}
-                          </div>
-                          <div className="text-sm text-ink-muted">
-                            Capacity:{" "}
-                            {t.capacity_tonnes} tonnes
-                          </div>
-                        </div>
-
-                        {isSelected && (
-                          <span className="text-green-700 font-semibold text-sm">
-                            ✔ Selected
-                          </span>
+                        {t.registration_number}:{" "}
+                        <strong>{load.toFixed(2)} t</strong>
+                        {max != null && max !== Infinity && (
+                          <> / {max} t max</>
                         )}
-                      </label>
+                        {!fits && " — over capacity!"}
+                      </div>
                     );
                   })}
               </div>
-            </div>
-          )}
-
-          {loadingRecommendation && (
-            <p className="text-sm text-ink-muted">
-              Searching for suitable trucks...
-            </p>
-          )}
-
-          {!loadingRecommendation &&
-            selectedOrderId &&
-            !recommendation &&
-            recommendationError && (
-              <p className="text-red-600 text-sm">
-                {recommendationError}
-              </p>
             )}
+          </FieldGroup>
+        )}
+{order && containers.length === 0 && (
+          <FieldGroup title="Assign Truck">
+            <p className="text-sm text-ink-muted">
+              This order has no container records, so it is assigned to a
+              single truck as one load.
+            </p>
 
-          {recommendation && (
-            <div className="space-y-3">
-              <div className="rounded-lg border p-4 bg-white">
-                <div className="text-sm text-ink-muted">
-                  <strong>Cargo weight:</strong>{" "}
-                  {recommendation.cargoWeightTonnes} tonnes
-                </div>
-                <div className="text-sm text-ink-muted">
-                  <strong>Pickup:</strong>{" "}
-                  {recommendation.pickupLocation}
-                </div>
-                <div className="text-sm text-ink-muted">
-                  <strong>Delivery:</strong>{" "}
-                  {recommendation.deliveryLocation}
-                </div>
-                <div className="text-sm text-ink-muted">
-                  <strong>
-                    {recommendation.trucks.length} truck
-                    {recommendation.trucks.length > 1
-                      ? "s"
-                      : ""}{" "}
-                    available
-                  </strong>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {recommendation.trucks.map((truck) => {
-                  const isSelected =
-                    selectedTruckId === truck.truckId;
-
+            <div className="space-y-2">
+              {availableTrucks
+                .filter((t) => canCarry(t, Number(order.weight_tonnes)))
+                .map((t) => {
+                  const isSelected = singleTruckId === String(t.truckId);
                   return (
                     <label
-                      key={truck.truckId}
-                      className={`flex items-center gap-3 rounded-lg border p-4 cursor-pointer transition-colors ${
+                      key={t.truckId}
+                      className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
                         isSelected
                           ? "border-green-600 bg-green-50"
                           : "border-navy-950/10 bg-white hover:border-navy-950/30"
@@ -479,57 +378,21 @@ export default function AllocationForm({
                     >
                       <input
                         type="radio"
-                        name="truck"
+                        name="single_truck"
                         checked={isSelected}
                         onChange={() =>
-                          handleTruckSelect(truck.truckId)
+                          setSingleTruckId(String(t.truckId))
                         }
                         className="h-4 w-4 text-green-600"
                       />
-
                       <div className="flex-1">
                         <div className="font-semibold text-ink">
-                          {truck.registration}
+                          {t.registration_number}
                         </div>
                         <div className="text-sm text-ink-muted">
-                          Capacity: {truck.capacity} tonnes
+                          Capacity: {Number(t.capacity_tonnes)} tonnes
                         </div>
-                        <div className="text-sm text-ink-muted">
-                          Current location:{" "}
-                          {truck.currentLocation ?? "Unknown"}
-                        </div>
-                        {truck.hasExistingOrder && (
-                          <div className="text-sm text-amber-600">
-                            ⚠ Currently on an order — heading
-                            to{" "}
-                            {truck.currentOrderDestination ??
-                              "Unknown"}
-                          </div>
-                        )}
-                        {truck.lastAllocatedAt ? (
-                          <div
-                            className={`text-sm ${
-                              truck.hasExistingOrder
-                                ? "text-amber-600"
-                                : "text-ink-muted"
-                            }`}
-                          >
-                            🕒 Last allocated:{" "}
-                            {formatLastAllocated(
-                              truck.lastAllocatedAt
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-green-700">
-                            ✓ Never allocated
-                          </div>
-                        )}
                       </div>
-
-                      <div className="text-sm font-medium text-ink-muted">
-                        {truck.distanceKm} km away
-                      </div>
-
                       {isSelected && (
                         <span className="text-green-700 font-semibold text-sm">
                           ✔ Selected
@@ -538,30 +401,32 @@ export default function AllocationForm({
                     </label>
                   );
                 })}
-              </div>
             </div>
-          )}
-        </FieldGroup>
+          </FieldGroup>
+        )}
+
+        {error && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </p>
+        )}
 
         <div className="flex items-center gap-3 border-t border-navy-950/10 pt-6">
           <Button
-            type="submit"
-            disabled={
-              isSubmitting || selectedTruckId == null
-            }
+            type="button"
+            disabled={!order || isSubmitting}
+            onClick={submit}
           >
-            {isSubmitting
-              ? "Allocating..."
-              : "Allocate Truck"}
+            {isSubmitting ? "Allocating..." : "Allocate Trucks"}
           </Button>
 
-          {isSubmitSuccessful && (
+          {succeeded && (
             <span className="text-sm font-medium text-green-700">
               Allocation completed.
             </span>
           )}
         </div>
-      </form>
+      </div>
     </div>
   );
 }

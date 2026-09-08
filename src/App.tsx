@@ -9,7 +9,7 @@ import TruckDetailPage from "./pages/TruckDetailPage";
 import DriverDetailPage from "./pages/DriverDetailPage";
 import OrderForm from "./pages/OrderForm";
 import OrdersListPage from "./pages/OrdersListPage";
-import AllocationForm from "./pages/AllocationForm";
+import AllocationForm, { type AllocationSubmit } from "./pages/AllocationForm";
 import AllocationsListPage from "./pages/AllocationsListPage";
 import UsersListPage from "./pages/UsersListPage";
 import UserForm from "./pages/UserForm";
@@ -516,41 +516,43 @@ export default function App() {
   //---------------------------------------------------------
 
   const handleAllocate = async (
-    values: {
-      order_ids: number[];
-      truck_id: number;
-    }
+    payload: AllocationSubmit
   ) => {
-    const multi = values.order_ids.length > 1;
+    let res: Response;
 
-    const res = await fetch(
-      `${API_BASE}/allocations${multi ? "/batch" : ""}`,
-      {
+    if (payload.kind === "containers") {
+      res = await fetch(`${API_BASE}/allocations/order`, {
         method: "POST",
 
         headers: {
           "Content-Type": "application/json",
         },
 
-        body: JSON.stringify(
-          multi
-            ? {
-                orderIds: values.order_ids,
-                truckId: values.truck_id,
-              }
-            : {
-                orderId: values.order_ids[0],
-                truckId: values.truck_id,
-              }
-        ),
-      }
-    );
+        body: JSON.stringify({
+          orderId: payload.orderId,
+          assignments: payload.assignments,
+        }),
+      });
+    } else {
+      res = await fetch(`${API_BASE}/allocations`, {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          orderId: payload.orderId,
+          truckId: payload.truckId,
+        }),
+      });
+    }
 
     const data = await res.json();
 
     if (!res.ok) {
       throw new Error(
-        data.message || "Allocation failed."
+        data.message || data.error || "Allocation failed."
       );
     }
 

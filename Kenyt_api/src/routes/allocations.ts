@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma";
-import { findBestTruck, allocateBatch } from "../services/allocationService";
+import { findBestTruck, allocateBatch, allocateOrderTrucks } from "../services/allocationService";
 import { recommendTruck } from "../services/recommendation.service";
 
 export default async function allocationRoutes(app: FastifyInstance) {
@@ -84,6 +84,38 @@ export default async function allocationRoutes(app: FastifyInstance) {
 
       return reply.send(result);
 
+    } catch (err) {
+      request.log.error(err);
+
+      return reply.status(400).send({
+        error: err instanceof Error ? err.message : "server_error",
+      });
+    }
+  });
+
+  /**
+   * Container-level allocation: assign the containers of ONE order to ONE or
+   * SEVERAL trucks. Each container is assigned to a specific truck.
+   * Body: { orderId: number, assignments: [{ containerId: number, truckId: number }] }
+   */
+  app.post("/allocations/order", async (request: any, reply) => {
+    try {
+      const { orderId, assignments } = request.body;
+
+      if (
+        typeof orderId !== "number" ||
+        !Array.isArray(assignments) ||
+        assignments.length === 0
+      ) {
+        return reply.status(400).send({
+          error:
+            "orderId (number) and assignments (array of {containerId, truckId}) are required.",
+        });
+      }
+
+      const result = await allocateOrderTrucks(orderId, assignments);
+
+      return reply.send(result);
     } catch (err) {
       request.log.error(err);
 
