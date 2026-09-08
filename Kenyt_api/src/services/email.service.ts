@@ -120,6 +120,13 @@ interface AllocationNotificationData {
   customerName: string;
   truckRegistration: string;
   truckCapacity?: string | null;
+  // Optional full list of trucks — used when one order is split across
+  // several trucks. When present with more than one entry, the email lists
+  // every truck instead of showing just the single one.
+  trucks?: Array<{
+    registration: string;
+    capacity: string | null;
+  }>;
 }
 
 /**
@@ -217,14 +224,16 @@ export async function sendAllocationNotification(
     return;
   }
 
-  const subject = `Truck Allocated for Order ${data.bolNumber}`;
+  const truckCount = data.trucks?.length ?? 0;
+  const multiple = truckCount > 1;
+  const subject = `${multiple ? "Trucks" : "Truck"} Allocated for Order ${data.bolNumber}`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
       <div style="background: #15803d; color: #fff; padding: 16px 24px;">
-        <h2 style="margin: 0; font-size: 18px;">Truck Allocated</h2>
+        <h2 style="margin: 0; font-size: 18px;">${multiple ? "Trucks Allocated" : "Truck Allocated"}</h2>
       </div>
       <div style="padding: 24px;">
-        <p style="margin: 0 0 16px; color: #374151;">A truck has been allocated to the order below. Please inform the driver and relevant parties.</p>
+        <p style="margin: 0 0 16px; color: #374151;">${multiple ? `${truckCount} trucks have been allocated to the order below. Please inform the relevant drivers and parties.` : "A truck has been allocated to the order below. Please inform the driver and relevant parties."}</p>
         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
           <tr>
             <td style="padding: 8px 0; color: #6b7280; width: 40%;">Order ID</td>
@@ -238,6 +247,18 @@ export async function sendAllocationNotification(
             <td style="padding: 8px 0; color: #6b7280;">Customer</td>
             <td style="padding: 8px 0; font-weight: 600; color: #111827;">${data.customerName}</td>
           </tr>
+          ${multiple
+            ? `
+          <tr>
+            <td style="padding: 8px 0; color: #6b7280;">Allocated Trucks</td>
+            <td style="padding: 8px 0; font-weight: 600; color: #111827;">${truckCount}</td>
+          </tr>
+          ${data.trucks!.map((t, i) => `
+          <tr>
+            <td style="padding: 8px 0; color: #6b7280;">Truck ${i + 1}</td>
+            <td style="padding: 8px 0; font-weight: 600; color: #111827; font-family: monospace;">${t.registration}${t.capacity ? ` (${t.capacity} t)` : ""}</td>
+          </tr>`).join("")}`
+            : `
           <tr>
             <td style="padding: 8px 0; color: #6b7280;">Allocated Truck</td>
             <td style="padding: 8px 0; font-weight: 600; color: #111827; font-family: monospace;">${data.truckRegistration}</td>
@@ -246,9 +267,9 @@ export async function sendAllocationNotification(
           <tr>
             <td style="padding: 8px 0; color: #6b7280;">Truck Capacity</td>
             <td style="padding: 8px 0; font-weight: 600; color: #111827;">${data.truckCapacity} tonnes</td>
-          </tr>` : ""}
+          </tr>` : ""}`}
         </table>
-        <p style="margin: 24px 0 0; color: #6b7280; font-size: 13px;">Please inform the assigned driver and any other relevant parties about this allocation.</p>
+        <p style="margin: 24px 0 0; color: #6b7280; font-size: 13px;">Please inform the assigned ${multiple ? "drivers" : "driver"} and any other relevant parties about this allocation.</p>
       </div>
     </div>
   `;

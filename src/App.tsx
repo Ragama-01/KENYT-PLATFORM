@@ -144,6 +144,10 @@ export default function App() {
       mode: "list",
     });
 
+  const [arriveError, setArriveError] = useState<string | null>(null);
+  const [confirmArriveId, setConfirmArriveId] = useState<number | null>(null);
+  const [arrivingId, setArrivingId] = useState<number | null>(null);
+
   // ------------------------
   // Live data
   // ------------------------
@@ -186,9 +190,10 @@ export default function App() {
     setOrders(transformed);
   }
 
-  // Only show pending (non-allocated) orders in the allocation dropdown
+  // Only show truly pending (not yet allocated) orders in the allocation
+  // dropdown so allocated/delivered orders are never offered again.
   const pendingOrders = orders.filter(
-    (o) => o.status !== "allocated"
+    (o) => o.status === "pending"
   );
 
   async function loadTrucks() {
@@ -565,6 +570,43 @@ export default function App() {
   };
 
   //---------------------------------------------------------
+  // Arrival at destination: free the truck(s) back to available
+  //---------------------------------------------------------
+
+  const handleArrived = async (allocationId: number) => {
+    setArriveError(null);
+    setArrivingId(allocationId);
+    try {
+      const res = await fetch(
+        `${API_BASE}/allocations/${allocationId}/arrive`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to mark as arrived.");
+      }
+
+      await loadOrders();
+      await loadTrucks();
+
+      setConfirmArriveId(null);
+      setArrivingId(null);
+
+      setAllocationView({
+        mode: "list",
+      });
+    } catch (err) {
+      setArriveError(
+        err instanceof Error ? err.message : "Failed to mark as arrived."
+      );
+      setArrivingId(null);
+    }
+  };
+
+  //---------------------------------------------------------
   // Truck lookup
   //---------------------------------------------------------
 
@@ -887,18 +929,67 @@ export default function App() {
             <div>
               <label className="text-sm font-medium text-ink-muted">Allocated At</label>
               <p className="mt-1 text-ink">
-                {allocationView.allocation.allocatedAt ? new Date(allocationView.allocation.allocatedAt).toLocaleString() : "�"}
+                {allocationView.allocation.allocatedAt ? new Date(allocationView.allocation.allocatedAt).toLocaleString() : "—"}
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-ink-muted">Status</label>
+              <p className="mt-1 text-ink">
+                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-navy-50 text-navy-700">
+                  {allocationView.allocation.status || "allocated"}
+                </span>
               </p>
             </div>
           </div>
-          <div className="mt-6 flex gap-3">
-            <button
-              type="button"
-              className="rounded-lg bg-navy-950 px-4 py-2 text-sm font-medium text-paper hover:bg-navy-800"
-              onClick={() => alert("Edit allocation form would open here")}
-            >
-              Edit Allocation
-            </button>
+
+          {arriveError && (
+            <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              {arriveError}
+            </p>
+          )}
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            {(allocationView.allocation.status || "allocated") !== "completed" && (
+              <>
+                {confirmArriveId === allocationView.allocation.allocationId ? (
+                  <button
+                    type="button"
+                    disabled={arrivingId != null}
+                    className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-paper hover:bg-green-700 disabled:opacity-50"
+                    onClick={() =>
+                      handleArrived(allocationView.allocation.allocationId)
+                    }
+                  >
+                    {arrivingId === allocationView.allocation.allocationId
+                      ? "Confirming…"
+                      : "Confirm arrival"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-green-600 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50"
+                    onClick={() =>
+                      setConfirmArriveId(allocationView.allocation.allocationId)
+                    }
+                  >
+                    ✓ Arrived at Destination
+                  </button>
+                )}
+                {confirmArriveId === allocationView.allocation.allocationId && (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-navy-950/20 px-4 py-2 text-sm font-medium text-ink hover:bg-navy-50"
+                    onClick={() => {
+                      setConfirmArriveId(null);
+                      setArriveError(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </>
+            )}
+
             <button
               type="button"
               className="rounded-lg border border-navy-950/20 px-4 py-2 text-sm font-medium text-ink hover:bg-navy-50"

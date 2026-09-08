@@ -291,6 +291,74 @@ export interface ContainerAssignment {
   truckId: number;
 }
 
+// ---------------------------------------------------------------------
+// Arrival at destination: release a truck back to "available" once it has
+// reached the delivery point. Marks the allocation as completed and, when
+// this was the last active allocation for the order, marks the order as
+// delivered. Works for single- and multi-truck orders alike (each truck is
+// released independently via its own allocation).
+// ---------------------------------------------------------------------
+export async function markAllocationArrived(allocationId: number) {
+  const allocation = await prisma.allocation.findUnique({
+    where: { allocationId },
+    include: {
+      truck: true,
+      order: true,
+    },
+  });
+
+  if (!allocation) throw new Error("Allocation not found.");
+
+  if (allocation.status === "completed") {
+    throw new Error("This allocation is already marked as arrived.");
+  }
+
+  // 1. Free the truck so it is available for a new assignment.
+  if (allocation.truck) {
+    await prisma.truck.update({
+      where: { truckId: allocation.truckId },
+      data: { status: "available" },
+    });
+  }
+
+  // 2. Mark this allocation completed.
+  await prisma.allocation.update({
+    where: { allocationId },
+    data: { status: "completed" },
+  });
+
+  // 3. If no other active (non-completed) allocation remains for the order,
+  //    the whole delivery is done -> mark the order as delivered.
+  const remainingActive = await prisma.allocation.count({
+    where: {
+      orderId: allocation.orderId,
+      status: { not: "completed" },
+    },
+  });
+
+  let orderStatus: string | undefined;
+  if (remainingActive === 0) {
+    await prisma.order.update({
+      where: { orderId: allocation.orderId },
+      data: { status: "delivered" },
+    });
+    orderStatus = "delivered";
+  }
+
+  return {
+    allocationId,
+    orderId: allocation.orderId,
+    orderStatus,
+    truck: {
+      truckId: allocation.truckId,
+      registration: allocation.truck
+        ? allocation.truck.registration_number
+        : "",
+      status: "available",
+    },
+  };
+}
+
 export async function allocateOrderTrucks(
   orderId: number,
   assignments: ContainerAssignment[]
@@ -428,6 +496,15 @@ export async function allocateOrderTrucks(
         firstTruck && firstTruck.capacity_tonnes
           ? String(firstTruck.capacity_tonnes)
           : null,
+      // Include every truck assigned to this order so the email lists
+      // them all (not just the first one).
+      trucks: truckIds.map((tid) => {
+        const t = truckIndex.get(tid);
+        return {
+          registration: t?.registration_number ?? "",
+          capacity: t?.capacity_tonnes ? String(t.capacity_tonnes) : null,
+        };
+      }),
     });
   } catch (e) {
     console.warn(

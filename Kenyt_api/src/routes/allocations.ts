@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma";
-import { findBestTruck, allocateBatch, allocateOrderTrucks } from "../services/allocationService";
+import { findBestTruck, allocateBatch, allocateOrderTrucks, markAllocationArrived } from "../services/allocationService";
 import { recommendTruck } from "../services/recommendation.service";
 
 export default async function allocationRoutes(app: FastifyInstance) {
@@ -114,6 +114,27 @@ export default async function allocationRoutes(app: FastifyInstance) {
       }
 
       const result = await allocateOrderTrucks(orderId, assignments);
+
+      return reply.send(result);
+    } catch (err) {
+      request.log.error(err);
+
+      return reply.status(400).send({
+        error: err instanceof Error ? err.message : "server_error",
+      });
+    }
+  });
+
+  /**
+   * Mark an allocation as arrived at destination.
+   * Frees the truck (back to "available") and, when it was the last active
+   * allocation for the order, marks the order as "delivered".
+   */
+  app.post("/allocations/:id/arrive", async (request: any, reply) => {
+    try {
+      const allocationId = Number(request.params.id);
+
+      const result = await markAllocationArrived(allocationId);
 
       return reply.send(result);
     } catch (err) {
