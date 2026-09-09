@@ -174,7 +174,7 @@ export interface OrderContainerInput {
 
 export interface OrderFormValues {
 
-  bol_number: string;
+  bol_number?: string;
 
   customer_name: string;
 

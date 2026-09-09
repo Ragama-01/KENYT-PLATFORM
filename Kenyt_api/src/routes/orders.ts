@@ -67,7 +67,7 @@ export default async function orderRoutes(app: FastifyInstance) {
 
       const order = await prisma.order.create({
         data: {
-          bolNumber: body.bol_number,
+          bolNumber: body.bol_number && String(body.bol_number).trim() !== "" ? String(body.bol_number).trim() : null,
 
           customerName: body.customer_name,
 

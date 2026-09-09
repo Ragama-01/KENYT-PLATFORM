@@ -203,7 +203,7 @@ export default function AllocationForm({
 
   const orderOptions = orders.map((o) => ({
     value: String(o.orderId),
-    label: `${o.bol_number} • ${o.customer_name} (${Number(
+    label: `${o.bol_number || "N/A"} • ${o.customer_name} (${Number(
       o.weight_tonnes
     )} t)`,
   }));

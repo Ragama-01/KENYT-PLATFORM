@@ -784,13 +784,13 @@ export default function App() {
       <div>
         <div className="mb-6">
           <h2 className="font-display text-xl font-semibold text-ink">Order Details</h2>
-          <p className="mt-1 text-sm text-ink-muted">Order #{orderView.order.bol_number}</p>
+          <p className="mt-1 text-sm text-ink-muted">Order #{orderView.order.bol_number || "N/A"}</p>
         </div>
         <div className="rounded-lg border border-navy-950/10 bg-white p-6">
           <div className="grid gap-4">
             <div>
               <label className="text-sm font-medium text-ink-muted">BOL Number</label>
-              <p className="mt-1 text-ink">{orderView.order.bol_number}</p>
+              <p className="mt-1 text-ink">{orderView.order.bol_number || "N/A"}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-ink-muted">Customer</label>
@@ -909,7 +909,7 @@ export default function App() {
         <div className="mb-6">
           <h2 className="font-display text-xl font-semibold text-ink">Allocation Details</h2>
           <p className="mt-1 text-sm text-ink-muted">
-            Order: {allocationView.allocation.order?.bol_number} - {allocationView.allocation.order?.customer_name}
+            Order: {allocationView.allocation.order?.bol_number || "N/A"} - {allocationView.allocation.order?.customer_name}
           </p>
         </div>
         <div className="rounded-lg border border-navy-950/10 bg-white p-6">
@@ -917,7 +917,7 @@ export default function App() {
             <div>
               <label className="text-sm font-medium text-ink-muted">Order</label>
               <p className="mt-1 text-ink">
-                {allocationView.allocation.order?.bol_number} - {allocationView.allocation.order?.customer_name}
+                {allocationView.allocation.order?.bol_number || "N/A"} - {allocationView.allocation.order?.customer_name}
               </p>
             </div>
             <div>

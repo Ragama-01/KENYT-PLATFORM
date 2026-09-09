@@ -76,7 +76,7 @@ export default function OrdersListPage({ orders, onAddOrder, onViewOrder, onEdit
                 const isDeleting = deletingId === order.id;
                 return (
                   <tr key={order.id} className="hover:bg-navy-950/[0.02]">
-                    <td className="px-4 py-3 font-mono font-medium text-ink">{order.bol_number}</td>
+                    <td className="px-4 py-3 font-mono font-medium text-ink">{order.bol_number || <span className="text-ink-muted italic">N/A</span>}</td>
                     <td className="px-4 py-3 text-ink">{order.customer_name}</td>
                     <td className="px-4 py-3 text-ink-muted">{order.cargo_type}</td>
                     <td className="px-4 py-3">

@@ -145,7 +145,7 @@ model TruckLocation {
 model Order {
   orderId Int @id @default(autoincrement())
 
-  bolNumber String @unique
+  bolNumber String? @unique
 
   customerName String
 

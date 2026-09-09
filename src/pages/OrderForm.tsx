@@ -43,7 +43,7 @@ const containerSchema = z.object({
 });
 
 const schema = z.object({
-  bol_number: z.string().min(1, "BOL number is required"),
+  bol_number: z.string().optional(),
 
   customer_name: z.string().min(1, "Customer is required"),
 
