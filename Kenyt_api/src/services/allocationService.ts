@@ -143,7 +143,7 @@ export async function findBestTruck(orderId: number, truckId?: number) {
   try {
     await sendAllocationNotification({
       orderId: order.orderId,
-      bolNumber: order.bolNumber,
+      bolNumber: order.bolNumber ?? "N/A",
       customerName: order.customerName,
       truckRegistration: selectedTruck.registration_number,
       truckCapacity: selectedTruck.capacity_tonnes
@@ -249,7 +249,7 @@ export async function allocateBatch(orderIds: number[], truckId: number) {
     await sendAllocationNotification(
       {
         orderId: orders[0].orderId,
-        bolNumber: orders.map((o) => o.bolNumber).join(", "),
+        bolNumber: orders.map((o) => o.bolNumber ?? "N/A").join(", "),
         customerName: orders[0].customerName,
         truckRegistration: truck.registration_number,
         truckCapacity: truck.capacity_tonnes
@@ -487,7 +487,7 @@ export async function allocateOrderTrucks(
     const firstTruck = truckIndex.get(truckIds[0]);
     await sendAllocationNotification({
       orderId: order.orderId,
-      bolNumber: order.bolNumber,
+      bolNumber: order.bolNumber ?? "N/A",
       customerName: order.customerName,
       truckRegistration: firstTruck
         ? firstTruck.registration_number

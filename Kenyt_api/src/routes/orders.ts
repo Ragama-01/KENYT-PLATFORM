@@ -124,7 +124,7 @@ export default async function orderRoutes(app: FastifyInstance) {
       try {
         await sendOrderCreatedNotification({
           orderId: order.orderId,
-          bolNumber: order.bolNumber,
+          bolNumber: order.bolNumber ?? "N/A",
           customerName: order.customerName,
           cargoType: order.cargoType,
           weightTonnes: String(order.cargoWeightTonnes),
