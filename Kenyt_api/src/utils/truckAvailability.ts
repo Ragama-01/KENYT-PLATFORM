@@ -104,15 +104,13 @@ export async function findAllocatableTrucks(opts?: {
   truckIds?: number[];
   includeLocation?: boolean;
 }) {
-  const where: { status?: { in: string[] }; truckId?: { in: number[] } } = {
-    status: { in: ["available", "assigned", "in_transit"] },
-  };
-  if (opts?.truckIds?.length) {
-    where.truckId = { in: opts.truckIds };
-  }
-
   const trucks = await prisma.truck.findMany({
-    where,
+    where: {
+      status: { in: ["available", "assigned", "in_transit"] },
+      ...(opts?.truckIds?.length
+        ? { truckId: { in: opts.truckIds } }
+        : {}),
+    },
     include: {
       location: true,
       allocations: {
