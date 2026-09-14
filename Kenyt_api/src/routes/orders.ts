@@ -65,9 +65,14 @@ export default async function orderRoutes(app: FastifyInstance) {
         (body.cargo_type && String(body.cargo_type).trim()) ||
         (containers[0]?.cargoType || "");
 
+      // Generate unique BOL number if not provided (PostgreSQL unique index doesn't allow multiple NULLs)
+      const bolNumber = body.bol_number && String(body.bol_number).trim() !== ""
+        ? String(body.bol_number).trim()
+        : `BOL-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
       const order = await prisma.order.create({
         data: {
-          bolNumber: body.bol_number && String(body.bol_number).trim() !== "" ? String(body.bol_number).trim() : null,
+          bolNumber,
 
           customerName: body.customer_name,
 
