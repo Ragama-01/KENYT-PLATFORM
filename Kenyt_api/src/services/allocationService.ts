@@ -321,10 +321,14 @@ export async function markAllocationArrived(allocationId: number) {
     });
   }
 
-  // 2. Mark this allocation completed.
+  // 2. Mark this allocation completed and record arrival time.
+  const arrivedAt = new Date();
   await prisma.allocation.update({
     where: { allocationId },
-    data: { status: "completed" },
+    data: {
+      status: "completed",
+      arrivedAt,
+    },
   });
 
   // 3. If no other active (non-completed) allocation remains for the order,
@@ -349,6 +353,7 @@ export async function markAllocationArrived(allocationId: number) {
     allocationId,
     orderId: allocation.orderId,
     orderStatus,
+    arrivedAt,
     truck: {
       truckId: allocation.truckId,
       registration: allocation.truck

@@ -216,6 +216,7 @@ model Allocation {
   truckId Int
 
   allocatedAt DateTime @default(now())
+  arrivedAt   DateTime?
 
   allocatedBy String?
 
