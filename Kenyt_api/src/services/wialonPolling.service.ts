@@ -1,9 +1,11 @@
 import "dotenv/config";
 import { prisma } from "../lib/prisma.js";
 import { loginToWialon, fetchAllUnitPositions } from "../scripts/wialonClient.js";
+import { haversineDistance } from "../utils/distance.js";
 
 const POLL_INTERVAL_MS = (Number(process.env.POLL_INTERVAL_MINUTES) || 60) * 60 * 1000;
 const SID_MAX_AGE_MS = 60 * 60 * 1000; // re-login hourly, sessions can expire
+const ARRIVAL_RADIUS_KM = 2; // Truck within 2km of destination = arrived
 
 let sid: string | null = null;
 let sidObtainedAt = 0;
@@ -22,6 +24,74 @@ async function ensureSession(): Promise<string> {
     throw new Error("Wialon session ID is null after login");
   }
   return sid;
+}
+
+async function checkAndCompleteArrivals() {
+  // Find all active allocations with delivery locations
+  const activeAllocations = await prisma.allocation.findMany({
+    where: {
+      status: { not: "completed" },
+    },
+    include: {
+      truck: {
+        include: { location: true },
+      },
+      order: {
+        include: { deliveryLocation: true },
+      },
+    },
+  });
+
+  for (const allocation of activeAllocations) {
+    const truck = allocation.truck;
+    const deliveryLocation = allocation.order?.deliveryLocation;
+
+    if (!truck?.location || !deliveryLocation) continue;
+
+    const distanceKm = haversineDistance(
+      Number(truck.location.lat),
+      Number(truck.location.lng),
+      Number(deliveryLocation.latitude),
+      Number(deliveryLocation.longitude)
+    );
+
+    if (distanceKm <= ARRIVAL_RADIUS_KM) {
+      // Truck has arrived at destination - mark allocation as completed
+      await prisma.$transaction(async (tx) => {
+        // 1. Free the truck
+        await tx.truck.update({
+          where: { truckId: truck.truckId },
+          data: { status: "available" },
+        });
+
+        // 2. Mark allocation completed with arrival time
+        const arrivedAt = new Date();
+        await tx.allocation.update({
+          where: { allocationId: allocation.allocationId },
+          data: { status: "completed", arrivedAt },
+        });
+
+        // 3. Check if order is fully delivered
+        const remainingActive = await tx.allocation.count({
+          where: {
+            orderId: allocation.orderId,
+            status: { not: "completed" },
+          },
+        });
+
+        if (remainingActive === 0) {
+          await tx.order.update({
+            where: { orderId: allocation.orderId },
+            data: { status: "delivered" },
+          });
+        }
+
+        console.log(
+          `[wialon] Auto-completed allocation ${allocation.allocationId} for truck ${truck.registration_number} (${distanceKm.toFixed(2)} km from destination)`
+        );
+      });
+    }
+  }
 }
 
 async function pollOnce() {
@@ -62,6 +132,9 @@ async function pollOnce() {
         skipped.map((s) => `${s.name} (unit ${s.unitId})`).join(", ")
       );
     }
+
+    // Check for arrivals after updating locations
+    await checkAndCompleteArrivals();
   } catch (err) {
     console.error("[wialon] Poll failed:", (err as Error).message);
     sid = null; // force re-login next attempt
