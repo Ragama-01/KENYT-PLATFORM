@@ -62,7 +62,34 @@ async function loginRequest(email: string, password: string) {
   }
 
   const data = await res.json();
+  // Store token and user in localStorage for persistence across refreshes
+  if (data.token) {
+    localStorage.setItem("auth_token", data.token);
+  }
   return data.user;
+}
+
+function getStoredAuth(): { user: User; token: string } | null {
+  const token = localStorage.getItem("auth_token");
+  const userStr = localStorage.getItem("auth_user");
+  if (token && userStr) {
+    try {
+      return { user: JSON.parse(userStr), token };
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function clearStoredAuth() {
+  localStorage.removeItem("auth_token");
+  localStorage.removeItem("auth_user");
+}
+
+function authHeaders(): HeadersInit {
+  const token = localStorage.getItem("auth_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 type TruckView =
@@ -88,6 +115,15 @@ type AllocationView =
 export default function App() {
   const [authed, setAuthed] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  // Check for stored auth on initial load
+  useEffect(() => {
+    const stored = getStoredAuth();
+    if (stored) {
+      setCurrentUser(stored.user);
+      setAuthed(true);
+    }
+  }, []);
 
   // Google sign-in callback: the backend redirects back here with the user
   // payload (?google_user=...) or an error code (?google_error=...).
@@ -157,8 +193,16 @@ export default function App() {
   const [trucks, setTrucks] = useState<any[]>([]);
   const [users, setUsers] = useState<User[]>([]);
 
+  const handleLogout = () => {
+    clearStoredAuth();
+    setCurrentUser(null);
+    setAuthed(false);
+  };
+
   async function loadOrders() {
-    const res = await fetch(`${API_BASE}/orders`);
+    const res = await fetch(`${API_BASE}/orders`, {
+      headers: authHeaders(),
+    });
 
     const data = await res.json();
 
@@ -197,7 +241,9 @@ export default function App() {
   );
 
   async function loadTrucks() {
-    const res = await fetch(`${API_BASE}/trucks`);
+    const res = await fetch(`${API_BASE}/trucks`, {
+      headers: authHeaders(),
+    });
 
     const data = await res.json();
 
@@ -214,7 +260,9 @@ export default function App() {
   }
 
   async function loadDrivers() {
-    const res = await fetch(`${API_BASE}/drivers`);
+    const res = await fetch(`${API_BASE}/drivers`, {
+      headers: authHeaders(),
+    });
 
     const data = await res.json();
 
@@ -238,7 +286,9 @@ export default function App() {
   }
 
   async function loadUsers() {
-    const res = await fetch(`${API_BASE}/users`);
+    const res = await fetch(`${API_BASE}/users`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) return;
     const data = await res.json();
     setUsers(data);
@@ -258,6 +308,11 @@ export default function App() {
       <LoginPage
         onSubmit={async (email, password) => {
           const user = await loginRequest(email, password);
+          // Also store user in localStorage
+          const token = localStorage.getItem("auth_token");
+          if (token) {
+            localStorage.setItem("auth_user", JSON.stringify(user));
+          }
           setCurrentUser(user);
           setAuthed(true);
         }}
@@ -283,7 +338,10 @@ export default function App() {
 
     const res = await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
       body: JSON.stringify(values),
     });
 
@@ -299,6 +357,7 @@ export default function App() {
   async function handleDeleteUser(id: number) {
     const res = await fetch(`${API_BASE}/users/${id}`, {
       method: "DELETE",
+      headers: authHeaders(),
     });
 
     if (!res.ok) {
@@ -367,6 +426,7 @@ export default function App() {
 
         headers: {
           "Content-Type": "application/json",
+          ...authHeaders(),
         },
 
         body: JSON.stringify(body),
@@ -404,6 +464,7 @@ export default function App() {
 
         headers: {
           "Content-Type": "application/json",
+          ...authHeaders(),
         },
 
         body: JSON.stringify(body),
@@ -437,6 +498,7 @@ export default function App() {
 
         headers: {
           "Content-Type": "application/json",
+          ...authHeaders(),
         },
 
         body: JSON.stringify(values),
@@ -472,6 +534,7 @@ export default function App() {
 
         headers: {
           "Content-Type": "application/json",
+          ...authHeaders(),
         },
 
         body: JSON.stringify(body),
@@ -503,7 +566,10 @@ export default function App() {
       id ? `${API_BASE}/customers/${id}` : `${API_BASE}/customers`,
       {
         method: id ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(),
+        },
         body: JSON.stringify(values),
       }
     );
@@ -531,6 +597,7 @@ export default function App() {
 
         headers: {
           "Content-Type": "application/json",
+          ...authHeaders(),
         },
 
         body: JSON.stringify({
@@ -544,6 +611,7 @@ export default function App() {
 
         headers: {
           "Content-Type": "application/json",
+          ...authHeaders(),
         },
 
         body: JSON.stringify({
@@ -581,6 +649,7 @@ export default function App() {
         `${API_BASE}/allocations/${allocationId}/arrive`,
         {
           method: "POST",
+          headers: authHeaders(),
         }
       );
 

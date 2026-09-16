@@ -1,6 +1,7 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import fastifyJwt from "@fastify/jwt";
 
 import truckRoutes from "./routes/trucks";
 import driverRoutes from "./routes/drivers";
@@ -21,6 +22,18 @@ async function main() {
 
   await app.register(cors, {
     origin: true
+  });
+
+  await app.register(fastifyJwt, {
+    secret: process.env.JWT_SECRET || "dev-secret-change-in-production",
+  });
+
+  app.decorate("authenticate", async function (request: any, reply: any) {
+    try {
+      await request.jwtVerify();
+    } catch (err) {
+      reply.send(err);
+    }
   });
 
   await app.register(truckRoutes);

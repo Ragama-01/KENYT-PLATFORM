@@ -2,6 +2,10 @@ import type { FastifyInstance } from "fastify";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
+const JWT_EXPIRES_IN = "7d";
 
 export default async function userRoutes(app: FastifyInstance) {
   app.post("/users", async (request, reply) => {
@@ -206,8 +210,15 @@ export default async function userRoutes(app: FastifyInstance) {
 
       const { password: _, ...userInfo } = user;
 
+      const token = jwt.sign(
+        { sub: user.id, email: user.email, role: user.role },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRES_IN }
+      );
+
       return reply.send({
         user: userInfo,
+        token,
         message: "Login successful",
       });
     } catch (err) {
