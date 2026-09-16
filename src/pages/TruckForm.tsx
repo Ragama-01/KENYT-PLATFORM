@@ -20,9 +20,14 @@ const schema = z
       .int()
       .min(1980, "Enter a valid year")
       .max(currentYear, "Year can't be in the future"),
-      capacity_tonnes: z.coerce
+    capacity_tonnes: z.coerce
       .number()
       .positive("Capacity must be greater than 0"),
+    controlTechUnitId: z.coerce
+      .number()
+      .int()
+      .positive("Control Tech Unit ID must be a positive integer")
+      .optional(),
     inspection_issued: z.string().min(1, "Required"),
     inspection_expiry: z.string().min(1, "Required"),
     speed_governor_issued: z.string().min(1, "Required"),
@@ -177,16 +182,25 @@ export default function TruckForm({ onSubmit, truck, onViewAll }: TruckFormProps
             error={errors.year_of_manufacture?.message}
             {...register("year_of_manufacture")}
           />
-          <TextField
-    id="capacity_tonnes"
-    label="Carrying capacity (Tonnes)"
-    type="number"
-    placeholder="28.34"
-    error={errors.capacity_tonnes?.message}
-    {...register("capacity_tonnes")}
-  />
-        
-        </FieldGroup>
+<TextField
+      id="capacity_tonnes"
+      label="Carrying capacity (Tonnes)"
+      type="number"
+      placeholder="28.34"
+      error={errors.capacity_tonnes?.message}
+      {...register("capacity_tonnes")}
+    />
+    <TextField
+      id="controlTechUnitId"
+      label="Control Tech Unit ID"
+      type="number"
+      placeholder="e.g. 12345"
+      hint="Wialon/Control-Tech unit identifier for GPS tracking"
+      error={errors.controlTechUnitId?.message}
+      {...register("controlTechUnitId")}
+    />
+
+  </FieldGroup>
 
         <FieldGroup title="Truck insurance">
           <TextField

@@ -47,6 +47,8 @@ export interface Truck {
 
   capacity_tonnes: number;
 
+  controlTechUnitId?: number;
+
   status: TruckStatus;
 
   trailer?: Trailer | null;
@@ -86,6 +88,8 @@ export interface TruckFormValues {
   year_of_manufacture: number;
 
   capacity_tonnes: number;
+
+  controlTechUnitId?: number;
 
   inspection_issued: string;
   inspection_expiry: string;

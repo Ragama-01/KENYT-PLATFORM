@@ -29,6 +29,7 @@ export default async function truckRoutes(app: FastifyInstance) {
           registration_number: v.registration_number.toUpperCase(),
           year_of_manufacture: v.year_of_manufacture,
           capacity_tonnes: v.capacity_tonnes,
+          controlTechUnitId: v.controlTechUnitId ?? undefined,
 
           status: "available",
 
