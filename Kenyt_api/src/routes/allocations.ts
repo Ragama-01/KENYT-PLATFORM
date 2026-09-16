@@ -54,7 +54,11 @@ export default async function allocationRoutes(app: FastifyInstance) {
     const allocations = await prisma.allocation.findMany({
       include: {
         truck: true,
-        order: true,
+        order: {
+          include: {
+            deliveryLocation: true,
+          },
+        },
       },
       orderBy: {
         allocatedAt: "desc",

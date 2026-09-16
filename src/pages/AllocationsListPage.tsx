@@ -26,6 +26,11 @@ async function fetchAllocations(): Promise<AllocationRecord[]> {
           customer_name: allocation.order.customerName,
           cargo_type: allocation.order.cargoType,
           weight_tonnes: allocation.order.cargoWeightTonnes,
+          delivery_location: allocation.order.deliveryLocation
+            ? {
+                name: allocation.order.deliveryLocation.name,
+              }
+            : null,
         }
       : null,
     // Transform nested truck object
@@ -112,6 +117,7 @@ export default function AllocationsListPage({
             <thead className="bg-navy-950/5 text-xs uppercase tracking-wide text-ink-muted">
               <tr>
                 <th className="px-4 py-3 font-medium">Order</th>
+                <th className="px-4 py-3 font-medium">Destination</th>
                 <th className="px-4 py-3 font-medium">Truck</th>
                 <th className="px-4 py-3 font-medium">Allocated At</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
@@ -131,6 +137,9 @@ export default function AllocationsListPage({
                       <div className="text-xs text-ink-muted">
                         {allocation.order?.customer_name || "Unknown customer"}
                       </div>
+                    </td>
+                    <td className="px-4 py-3 text-ink-muted">
+                      {allocation.order?.delivery_location?.name || "—"}
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-medium text-ink">
