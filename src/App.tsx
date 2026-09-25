@@ -74,8 +74,16 @@ function getStoredAuth(): { user: User; token: string } | null {
   const userStr = localStorage.getItem("auth_user");
   if (token && userStr) {
     try {
+      // Check if JWT token is expired
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const exp = payload.exp * 1000; // convert to milliseconds
+      if (Date.now() >= exp) {
+        clearStoredAuth();
+        return null;
+      }
       return { user: JSON.parse(userStr), token };
     } catch {
+      clearStoredAuth();
       return null;
     }
   }
@@ -693,6 +701,8 @@ export default function App() {
     onNavigate={handleSectionNavigate}
     onSubNavigate={handleSubNavigate}
     isSuperAdmin={isSuperAdmin}
+    currentUser={currentUser}
+    onLogout={handleLogout}
   >
     {/* Trucks */}
 

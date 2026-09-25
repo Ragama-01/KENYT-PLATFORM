@@ -82,6 +82,8 @@ interface AppShellProps {
   onSubNavigate: (section: CaptureSection, action: SubAction) => void;
   children: ReactNode;
   isSuperAdmin?: boolean;
+  currentUser?: { email: string; fullName: string; role: string } | null;
+  onLogout?: () => void;
 }
 
 export default function AppShell({
@@ -90,6 +92,8 @@ export default function AppShell({
   onSubNavigate,
   children,
   isSuperAdmin,
+  currentUser,
+  onLogout,
 }: AppShellProps) {
   const visibleNavItems = NAV_ITEMS.filter(
     (item) => !item.superAdminOnly || isSuperAdmin
@@ -173,6 +177,24 @@ export default function AppShell({
         <div className="border-t border-navy-800 pt-4 text-xs text-navy-400">
           <span className="font-mono">Operations Platform</span>
         </div>
+
+        {currentUser && onLogout && (
+          <div className="mt-4 pt-4 border-t border-navy-800">
+            <div className="mb-2 px-3 text-xs text-navy-400">
+              {currentUser.fullName} ({currentUser.role})
+            </div>
+            <div className="px-3 text-xs text-navy-500 truncate">{currentUser.email}</div>
+            <button
+              onClick={onLogout}
+              className="mt-3 w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-navy-300 hover:bg-navy-900 hover:text-paper transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sign out
+            </button>
+          </div>
+        )}
       </aside>
 
       <main className="flex-1 overflow-y-auto px-10 py-10">
