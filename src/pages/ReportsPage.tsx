@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { API_BASE } from "../lib/api";
 
-type ReportKey = "orders" | "drivers" | "orderSummary" | "fleetSummary";
+type ReportKey = "orders" | "drivers";
 
 const REPORTS: { key: ReportKey; label: string; description: string }[] = [
   {
@@ -13,16 +13,6 @@ const REPORTS: { key: ReportKey; label: string; description: string }[] = [
     key: "drivers",
     label: "Driver Details",
     description: "Full driver records with assigned truck and current status.",
-  },
-  {
-    key: "orderSummary",
-    label: "Order Summary",
-    description: "Order totals and breakdowns by status, cargo type and load type.",
-  },
-  {
-    key: "fleetSummary",
-    label: "Fleet Summary",
-    description: "Truck inventory, fleet status breakdown and compliance alerts.",
   },
 ];
 
@@ -123,66 +113,6 @@ const DRIVER_COLUMNS: Column[] = [
   { key: "truckStatus", label: "Truck Status" },
 ];
 
-const TRUCK_COLUMNS: Column[] = [
-  { key: "registration", label: "Registration" },
-  { key: "yearOfManufacture", label: "Year" },
-  { key: "capacityTonnes", label: "Capacity (t)" },
-  { key: "status", label: "Status" },
-  { key: "assignedDriver", label: "Assigned Driver" },
-  { key: "trailerRegistration", label: "Trailer" },
-];
-
-const ALERT_COLUMNS: Column[] = [
-  { key: "registration", label: "Truck" },
-  { key: "item", label: "Compliance Item" },
-  { key: "expiryDate", label: "Expiry Date" },
-];
-
-function BreakdownTable({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: { label: string; count: number }[];
-}) {
-  return (
-    <div className="rounded-xl border border-navy-950/10">
-      <h3 className="border-b border-navy-950/10 px-4 py-3 text-sm font-semibold text-ink">
-        {title}
-      </h3>
-      <div className="max-h-60 overflow-auto">
-        <table className="w-full text-left text-sm">
-          <tbody className="divide-y divide-navy-950/10">
-            {rows.map((r) => (
-              <tr key={r.label} className="hover:bg-navy-950/[0.02]">
-                <td className="px-4 py-2.5 text-ink">{r.label}</td>
-                <td className="px-4 py-2.5 text-right font-medium text-ink">
-                  {r.count}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="rounded-xl border border-navy-950/10 bg-white px-5 py-4">
-      <p className="text-xs uppercase tracking-wide text-ink-muted">{label}</p>
-      <p className="mt-1 font-display text-2xl font-semibold text-ink">{value}</p>
-    </div>
-  );
-}
-
 export default function ReportsPage() {
   const [activeReport, setActiveReport] = useState<ReportKey>("orders");
   const [data, setData] = useState<Record<string, unknown> | null>(null);
@@ -197,8 +127,6 @@ export default function ReportsPage() {
     const endpoints: Record<ReportKey, string> = {
       orders: "/reports/orders-by-customer",
       drivers: "/reports/drivers",
-      orderSummary: "/reports/order-summary",
-      fleetSummary: "/reports/fleet-summary",
     };
 
     fetch(`${API_BASE}${endpoints[activeReport]}`)
@@ -285,96 +213,6 @@ const renderContent = () => {
               columns={DRIVER_COLUMNS}
               emptyText="No drivers yet."
             />
-          </div>
-        );
-      }
-      case "orderSummary": {
-        const summary = data as {
-          totalOrders: number;
-          totalWeightTonnes: number;
-          byStatus: { label: string; count: number }[];
-          byCargoType: { label: string; count: number }[];
-          byLoadType: { label: string; count: number }[];
-        };
-        return (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <StatCard label="Total Orders" value={summary.totalOrders} />
-              <StatCard
-                label="Total Tonnage"
-                value={`${summary.totalWeightTonnes} t`}
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <BreakdownTable title="By Status" rows={summary.byStatus} />
-              <BreakdownTable title="By Cargo Type" rows={summary.byCargoType} />
-              <BreakdownTable title="By Load Type" rows={summary.byLoadType} />
-            </div>
-          </div>
-        );
-      }
-case "fleetSummary": {
-        const summary = data as {
-          totalTrucks: number;
-          byStatus: { status: string; count: number }[];
-          rows: Record<string, unknown>[];
-          complianceAlerts: Record<string, unknown>[];
-        };
-        return (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <StatCard label="Total Trucks" value={summary.totalTrucks} />
-              <div className="rounded-xl border border-navy-950/10 bg-white px-5 py-4">
-                <p className="text-xs uppercase tracking-wide text-ink-muted">
-                  Fleet Status
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {summary.byStatus.map((s) => (
-                    <span
-                      key={s.status}
-                      className="inline-flex items-center rounded-full bg-navy-50 px-2.5 py-0.5 text-xs font-medium text-navy-700"
-                    >
-                      {s.status}: {s.count}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-ink">Truck Inventory</h3>
-                <button
-                  type="button"
-                  className="rounded-lg border border-navy-950/20 px-3 py-1.5 text-xs font-medium text-ink hover:bg-navy-50"
-                  onClick={() =>
-                    downloadCSV(
-                      "fleet-inventory.csv",
-                      summary.rows,
-                      TRUCK_COLUMNS.map((c) => c.key)
-                    )
-                  }
-                >
-                  Download CSV
-                </button>
-              </div>
-              <DataTable
-                data={summary.rows}
-                columns={TRUCK_COLUMNS}
-                emptyText="No trucks yet."
-              />
-            </div>
-
-            <div>
-              <h3 className="mb-2 text-sm font-semibold text-ink">
-                Compliance Alerts (expiring within 30 days)
-              </h3>
-              <DataTable
-                data={summary.complianceAlerts}
-                columns={ALERT_COLUMNS}
-                emptyText="No compliance items expiring soon."
-              />
-            </div>
           </div>
         );
       }
