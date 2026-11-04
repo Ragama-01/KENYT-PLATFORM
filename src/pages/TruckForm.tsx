@@ -28,6 +28,7 @@ const schema = z
       .int()
       .positive("Control Tech Unit ID must be a positive integer")
       .optional(),
+    logbook_number: z.string().optional(),
     inspection_issued: z.string().min(1, "Required"),
     inspection_expiry: z.string().min(1, "Required"),
     speed_governor_issued: z.string().min(1, "Required"),
@@ -198,6 +199,14 @@ export default function TruckForm({ onSubmit, truck, onViewAll }: TruckFormProps
       hint="Wialon/Control-Tech unit identifier for GPS tracking"
       error={errors.controlTechUnitId?.message}
       {...register("controlTechUnitId")}
+    />
+    <TextField
+      id="logbook_number"
+      label="Logbook Number"
+      placeholder="e.g. LGB-12345"
+      hint="Vehicle logbook number"
+      error={errors.logbook_number?.message}
+      {...register("logbook_number")}
     />
 
   </FieldGroup>

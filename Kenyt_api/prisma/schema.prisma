@@ -31,6 +31,7 @@ model Truck {
   registration_number  String
   year_of_manufacture  Int
   capacity_tonnes      Decimal?    @db.Decimal(5, 2)
+  logbook_number       String?     @map("logbook_number")
   status               TruckStatus
 
   inspection_issued DateTime? @db.Date

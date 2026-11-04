@@ -30,6 +30,7 @@ const truckBaseSchema = z.object({
   year_of_manufacture: z.number().int().min(1980).max(currentYear),
   capacity_tonnes: z.number().positive(),
   controlTechUnitId: z.number().int().positive().optional(),
+  logbook_number: z.string().optional(),
 
   inspection_issued: dateStr,
   inspection_expiry: dateStr,

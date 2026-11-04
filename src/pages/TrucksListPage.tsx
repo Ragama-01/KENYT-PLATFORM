@@ -52,6 +52,11 @@ function earliestExpiry(truck: TruckRecord) {
   );
 }
 
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString();
+}
+
 function ExpiryBadge({ dateStr, label }: { dateStr: string; label: string }) {
   const status = expiryStatus(dateStr);
   const daysLeft = Math.ceil(
@@ -145,7 +150,12 @@ useEffect(() => {
             <thead className="bg-navy-950/5 text-xs uppercase tracking-wide text-ink-muted">
               <tr>
                 <th className="px-4 py-3 font-medium">Registration</th>
-                <th className="px-4 py-3 font-medium">Year</th>
+                <th className="px-4 py-3 font-medium">Logbook No.</th>
+                <th className="px-4 py-3 font-medium">TGL Unit</th>
+                <th className="px-4 py-3 font-medium">Insurance Policy</th>
+                <th className="px-4 py-3 font-medium">Insurance Expiry</th>
+                <th className="px-4 py-3 font-medium">Speed Governor Expiry</th>
+                <th className="px-4 py-3 font-medium">Trailer</th>
                 <th className="px-4 py-3 font-medium">Compliance</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
@@ -159,7 +169,12 @@ useEffect(() => {
                 return (
                   <tr key={truck.id} className="hover:bg-navy-950/[0.02]">
                     <td className="px-4 py-3 font-mono text-ink">{truck.registration_number}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.year_of_manufacture}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.logbook_number || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.controlTechUnitId || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.truck_insurance_ref || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{formatDate(truck.truck_insurance_expiry)}</td>
+                    <td className="px-4 py-3 text-ink-muted">{formatDate(truck.speed_governor_expiry)}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.trailer?.registration_number || "—"}</td>
                     <td className="px-4 py-3">
                       {soonest ? (
                         <ExpiryBadge dateStr={soonest.value} label={soonest.label} />

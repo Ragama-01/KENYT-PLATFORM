@@ -30,6 +30,7 @@ export default async function truckRoutes(app: FastifyInstance) {
           year_of_manufacture: v.year_of_manufacture,
           capacity_tonnes: v.capacity_tonnes,
           controlTechUnitId: v.controlTechUnitId ?? undefined,
+          logbook_number: v.logbook_number || null,
 
           status: "available",
 
@@ -213,6 +214,9 @@ export default async function truckRoutes(app: FastifyInstance) {
             : {}),
           ...(truckData.speed_governor_expiry
             ? { speed_governor_expiry: new Date(truckData.speed_governor_expiry) }
+            : {}),
+          ...(truckData.logbook_number != null
+            ? { logbook_number: truckData.logbook_number }
             : {}),
           ...(truckData.truck_insurance_issued
             ? { truck_insurance_issued: new Date(truckData.truck_insurance_issued) }

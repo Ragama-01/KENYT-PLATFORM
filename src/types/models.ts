@@ -91,6 +91,8 @@ export interface TruckFormValues {
 
   controlTechUnitId?: number;
 
+  logbook_number?: string;
+
   inspection_issued: string;
   inspection_expiry: string;
 
