@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { API_BASE } from "../lib/api";
 
-type ReportKey = "orders" | "drivers";
+type ReportKey = "orders" | "drivers" | "fleet";
 
 const REPORTS: { key: ReportKey; label: string; description: string }[] = [
   {
@@ -13,6 +13,11 @@ const REPORTS: { key: ReportKey; label: string; description: string }[] = [
     key: "drivers",
     label: "Driver Details",
     description: "Full driver records with assigned truck and current status.",
+  },
+  {
+    key: "fleet",
+    label: "Fleet Summary",
+    description: "Truck inventory, registration, compliance and trailer details.",
   },
 ];
 
@@ -92,6 +97,43 @@ function DataTable({ data, columns, emptyText = "No data yet." }: DataTableProps
     </div>
   );
 }
+
+// Larger, more readable variant for fleet reports
+function LargeDataTable({ data, columns, emptyText = "No data yet." }: DataTableProps) {
+  if (data.length === 0) {
+    return <p className="text-base text-ink-muted">{emptyText}</p>;
+  }
+  return (
+    <div className="overflow-hidden rounded-xl border border-navy-950/10">
+      <div className="max-h-[34rem] overflow-auto">
+        <table className="w-full text-left text-base">
+          <thead className="sticky top-0 bg-navy-950/10 text-sm uppercase tracking-wide text-ink-muted">
+            <tr>
+              {columns.map((c) => (
+                <th key={c.key} className="px-6 py-4 font-semibold">
+                  {c.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-navy-950/5">
+            {data.map((row, idx) => (
+              <tr key={idx} className="hover:bg-navy-950/[0.03]">
+                {columns.map((c) => (
+                  <td key={c.key} className="px-6 py-4 text-ink">
+                    {row[c.key] == null || row[c.key] === ""
+                      ? "—"
+                      : String(row[c.key])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 const ORDER_COLUMNS: Column[] = [
   { key: "customer", label: "Customer" },
   { key: "orderCount", label: "Orders" },
@@ -113,6 +155,17 @@ const DRIVER_COLUMNS: Column[] = [
   { key: "truckStatus", label: "Truck Status" },
 ];
 
+const TRUCK_COLUMNS: Column[] = [
+  { key: "registration_number", label: "Registration" },
+  { key: "logbook_number", label: "Logbook No." },
+  { key: "controlTechUnitId", label: "TGL Unit" },
+  { key: "truck_insurance_ref", label: "Insurance Policy" },
+  { key: "truck_insurance_expiry", label: "Insurance Expiry" },
+  { key: "speed_governor_expiry", label: "Speed Governor Expiry" },
+  { key: "trailerRegistration", label: "Trailer" },
+  { key: "status", label: "Status" },
+];
+
 export default function ReportsPage() {
   const [activeReport, setActiveReport] = useState<ReportKey>("orders");
   const [data, setData] = useState<Record<string, unknown> | null>(null);
@@ -127,6 +180,7 @@ export default function ReportsPage() {
     const endpoints: Record<ReportKey, string> = {
       orders: "/reports/orders-by-customer",
       drivers: "/reports/drivers",
+      fleet: "/reports/fleet-summary",
     };
 
     fetch(`${API_BASE}${endpoints[activeReport]}`)
@@ -212,6 +266,34 @@ const renderContent = () => {
               data={rows}
               columns={DRIVER_COLUMNS}
               emptyText="No drivers yet."
+            />
+          </div>
+        );
+      }
+      case "fleet": {
+        const summary = data as { rows: Record<string, unknown>[] } | null;
+        const rows = (summary?.rows ?? []) as Record<string, unknown>[];
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                className="rounded-lg bg-navy-800 px-4 py-2 text-base font-medium text-paper hover:bg-navy-700"
+                onClick={() =>
+                  downloadCSV(
+                    "fleet-summary.csv",
+                    rows,
+                    TRUCK_COLUMNS.map((c) => c.key)
+                  )
+                }
+              >
+                Download CSV
+              </button>
+            </div>
+            <LargeDataTable
+              data={rows}
+              columns={TRUCK_COLUMNS}
+              emptyText="No trucks yet."
             />
           </div>
         );

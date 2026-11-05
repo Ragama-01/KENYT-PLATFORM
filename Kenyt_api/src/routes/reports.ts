@@ -124,19 +124,24 @@ export default async function reportRoutes(app: FastifyInstance) {
       const trucks = await prisma.truck.findMany({
         include: {
           trailer: true,
-          drivers: { select: { fullName: true } },
         },
         orderBy: { registration_number: "asc" },
       });
 
       const rows = trucks.map((t) => ({
         truckId: t.truckId,
-        registration: t.registration_number,
-        yearOfManufacture: t.year_of_manufacture,
-        capacityTonnes: t.capacity_tonnes?.toString() ?? "0",
-        status: t.status,
-        assignedDriver: t.drivers[0]?.fullName ?? "",
+        registration_number: t.registration_number,
+        logbook_number: t.logbook_number,
+        controlTechUnitId: t.controlTechUnitId,
+        truck_insurance_ref: t.truck_insurance_ref,
+        truck_insurance_expiry: t.truck_insurance_expiry
+          ? t.truck_insurance_expiry.toISOString().split("T")[0]
+          : null,
+        speed_governor_expiry: t.speed_governor_expiry
+          ? t.speed_governor_expiry.toISOString().split("T")[0]
+          : null,
         trailerRegistration: t.trailer?.registration_number ?? "",
+        status: t.status,
       }));
 
       const byStatus: Record<string, number> = {};
