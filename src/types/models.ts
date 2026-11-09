@@ -26,6 +26,7 @@ export interface Trailer {
   trailer_id?: number;
   truck_id: number;
   registration_number?: string;
+  logbook_number?: string;
 
   insurance_issued?: string;
   insurance_expiry?: string;
@@ -49,9 +50,106 @@ export interface Truck {
 
   controlTechUnitId?: number;
 
+  logbook_number?: string;
+
+  // Truck insurance
+  truck_insurance_issued?: string;
+  truck_insurance_expiry?: string;
+  truck_insurance_ref?: string;
+  truck_insurance_serial?: string;
+  truck_insurance_purchase?: string;
+
+  // TGL
+  tgl_number?: string;
+  tgl_year?: string;
+
+  // Inspection
+  inspection_issued?: string;
+  inspection_expiry?: string;
+  inspection_cert_number?: string;
+
+  // Speed governor
+  speed_governor_issued?: string;
+  speed_governor_expiry?: string;
+
+  // COMESA
+  truck_comesa_policy_number?: string;
+  truck_comesa_insurer?: string;
+  truck_comesa_date_taken?: string;
+  truck_comesa_date_expiry?: string;
+  truck_comesa_premium_amount?: number;
+
+  // Notes
+  factors_to_note?: string;
+
   status: TruckStatus;
 
   trailer?: Trailer | null;
+
+  // History
+  insuranceHistory?: TruckInsuranceHistory[];
+  tglHistory?: TruckTGLHistory[];
+  inspectionHistory?: TruckInspectionHistory[];
+}
+
+export interface TruckInsuranceHistory {
+  id: number;
+  truck_id: number;
+  policyNumber?: string;
+  serialNumber?: string;
+  insurer?: string;
+  issuedDate: string;
+  expiryDate: string;
+  purchaseDate?: string;
+  premiumAmount?: number;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface TruckTGLHistory {
+  id: number;
+  truck_id: number;
+  tglNumber?: string;
+  tglYear?: string;
+  issuedDate?: string;
+  expiryDate?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface TruckInspectionHistory {
+  id: number;
+  truck_id: number;
+  certNumber?: string;
+  inspectionBody?: string;
+  issuedDate: string;
+  expiryDate: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface TrailerInsuranceHistory {
+  id: number;
+  trailer_id: number;
+  policyNumber?: string;
+  insurer?: string;
+  issuedDate: string;
+  expiryDate: string;
+  premiumAmount?: number;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface TrailerCOMESAHistory {
+  id: number;
+  trailer_id: number;
+  policyNumber?: string;
+  insurer?: string;
+  dateTaken?: string;
+  dateExpiry?: string;
+  premiumAmount?: number;
+  notes?: string;
+  createdAt: string;
 }
 
 export interface TruckComplianceRecord {
@@ -70,6 +168,7 @@ export interface TruckComplianceRecord {
 
 export interface TrailerFormValues {
   registration_number?: string;
+  logbook_number?: string;
 
   insurance_issued?: string;
   insurance_expiry?: string;
@@ -93,21 +192,35 @@ export interface TruckFormValues {
 
   logbook_number?: string;
 
-  inspection_issued: string;
-  inspection_expiry: string;
-
-  speed_governor_issued: string;
-  speed_governor_expiry: string;
-
+  // Truck insurance
   truck_insurance_issued: string;
   truck_insurance_expiry: string;
   truck_insurance_ref?: string;
+  truck_insurance_serial?: string;
+  truck_insurance_purchase?: string;
 
+  // TGL
+  tgl_number?: string;
+  tgl_year?: string;
+
+  // Inspection
+  inspection_issued: string;
+  inspection_expiry: string;
+  inspection_cert_number?: string;
+
+  // Speed governor
+  speed_governor_issued: string;
+  speed_governor_expiry: string;
+
+  // COMESA
   truck_comesa_policy_number: string;
   truck_comesa_insurer: string;
   truck_comesa_date_taken: string;
   truck_comesa_date_expiry: string;
   truck_comesa_premium_amount: number;
+
+  // Notes
+  factors_to_note?: string;
 
   trailer?: TrailerFormValues;
 }

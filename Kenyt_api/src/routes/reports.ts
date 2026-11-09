@@ -132,7 +132,7 @@ export default async function reportRoutes(app: FastifyInstance) {
         truckId: t.truckId,
         registration_number: t.registration_number,
         logbook_number: t.logbook_number,
-        controlTechUnitId: t.controlTechUnitId,
+        tgl_number: t.tgl_number,
         truck_insurance_ref: t.truck_insurance_ref,
         truck_insurance_expiry: t.truck_insurance_expiry
           ? t.truck_insurance_expiry.toISOString().split("T")[0]

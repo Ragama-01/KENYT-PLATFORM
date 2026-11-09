@@ -170,7 +170,7 @@ useEffect(() => {
                   <tr key={truck.id} className="hover:bg-navy-950/[0.02]">
                     <td className="px-4 py-3 font-mono text-ink">{truck.registration_number}</td>
                     <td className="px-4 py-3 text-ink-muted">{truck.logbook_number || "—"}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.controlTechUnitId || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.tgl_number || "—"}</td>
                     <td className="px-4 py-3 text-ink-muted">{truck.truck_insurance_ref || "—"}</td>
                     <td className="px-4 py-3 text-ink-muted">{formatDate(truck.truck_insurance_expiry)}</td>
                     <td className="px-4 py-3 text-ink-muted">{formatDate(truck.speed_governor_expiry)}</td>

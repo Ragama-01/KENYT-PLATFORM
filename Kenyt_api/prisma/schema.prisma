@@ -27,40 +27,57 @@ enum ComplianceType {
 }
 
 model Truck {
-  truckId              Int         @id @default(autoincrement()) @map("truckid")
-  registration_number  String
-  year_of_manufacture  Int
-  capacity_tonnes      Decimal?    @db.Decimal(5, 2)
-  logbook_number       String?     @map("logbook_number")
-  status               TruckStatus
+  truckId                    Int         @id @default(autoincrement()) @map("truckid")
+  registration_number        String
+  year_of_manufacture        Int
+  capacity_tonnes            Decimal?    @db.Decimal(5, 2)
+  logbook_number             String?     @map("logbook_number")
+  status                     TruckStatus
 
-  inspection_issued DateTime? @db.Date
-  inspection_expiry DateTime? @db.Date
+  // Truck insurance
+  truck_insurance_issued      DateTime?   @db.Date
+  truck_insurance_expiry      DateTime?   @db.Date
+  truck_insurance_ref         String?
+  truck_insurance_serial      String?     @map("truck_insurance_serial")
+  truck_insurance_purchase    DateTime?   @map("truck_insurance_purchase") @db.Date
 
-  speed_governor_issued DateTime? @db.Date
-  speed_governor_expiry DateTime? @db.Date
+  // TGL (Tracking/Geo-location)
+  tgl_number                  String?     @map("tgl_number")
+  tgl_year                    String?     @map("tgl_year")
 
-  truck_insurance_issued DateTime? @db.Date
-  truck_insurance_expiry DateTime? @db.Date
-  truck_insurance_ref    String?
+  // Inspection
+  inspection_issued           DateTime?   @db.Date
+  inspection_expiry           DateTime?   @db.Date
+  inspection_cert_number      String?     @map("inspection_cert_number")
 
+  // Speed governor
+  speed_governor_issued       DateTime?   @db.Date
+  speed_governor_expiry       DateTime?   @db.Date
+
+  // COMESA
   truck_comesa_policy_number  String?
   truck_comesa_insurer        String?
-  truck_comesa_date_taken     DateTime? @db.Date
-  truck_comesa_date_expiry    DateTime? @db.Date
-  truck_comesa_premium_amount Decimal?  @db.Decimal(12, 2)
+  truck_comesa_date_taken     DateTime?   @db.Date
+  truck_comesa_date_expiry    DateTime?   @db.Date
+  truck_comesa_premium_amount Decimal?    @db.Decimal(12, 2)
 
-  created_at DateTime @default(now()) @db.Timestamp(3)
-  updated_at DateTime @updatedAt @db.Timestamp(3)
+  // Notes
+  factors_to_note             String?     @map("factors_to_note")
 
-  controlTechUnitId Int? @unique @map("control_tech_unit_id")
+  created_at                  DateTime    @default(now()) @db.Timestamp(3)
+  updated_at                  DateTime    @updatedAt @db.Timestamp(3)
 
-  compliance  TruckCompliance[]
-  drivers     Driver[]
-  allocations Allocation[]
-  location    TruckLocation?
-  trailer     Trailer?
-  containers  Container[]
+  controlTechUnitId           Int?        @unique @map("control_tech_unit_id")
+
+  compliance                  TruckCompliance[]
+  drivers                     Driver[]
+  allocations                 Allocation[]
+  location                    TruckLocation?
+  trailer                     Trailer?
+  containers                  Container[]
+  insuranceHistory            TruckInsuranceHistory[]
+  tglHistory                  TruckTGLHistory[]
+  inspectionHistory           TruckInspectionHistory[]
 
   @@index([status])
   @@index([capacity_tonnes])
@@ -68,14 +85,15 @@ model Truck {
 }
 
 model Trailer {
-  trailerId Int @id @default(autoincrement()) @map("trailer_id")
-  truckId   Int @unique @map("truck_id")
+  trailerId            Int       @id @default(autoincrement()) @map("trailer_id")
+  truckId              Int       @unique @map("truck_id")
 
-  registration_number String?
+  registration_number  String?
+  logbook_number       String?   @map("logbook_number")
 
-  insurance_issued DateTime? @map("insurance_issued") @db.Date
-  insurance_expiry DateTime? @map("insurance_expiry") @db.Date
-  insurance_ref    String?   @map("insurance_ref")
+  insurance_issued     DateTime? @map("insurance_issued") @db.Date
+  insurance_expiry     DateTime? @map("insurance_expiry") @db.Date
+  insurance_ref        String?   @map("insurance_ref")
 
   comesa_policy_number  String?   @map("comesa_policy_number")
   comesa_insurer        String?   @map("comesa_insurer")
@@ -83,10 +101,12 @@ model Trailer {
   comesa_date_expiry    DateTime? @map("comesa_date_expiry") @db.Date
   comesa_premium_amount Decimal?  @map("comesa_premium_amount") @db.Decimal(12, 2)
 
-  created_at DateTime @default(now()) @db.Timestamp(3)
-  updated_at DateTime @updatedAt @db.Timestamp(3)
+  created_at           DateTime  @default(now()) @db.Timestamp(3)
+  updated_at           DateTime  @updatedAt @db.Timestamp(3)
 
-  truck Truck @relation(fields: [truckId], references: [truckId], onDelete: Cascade)
+  truck                Truck     @relation(fields: [truckId], references: [truckId], onDelete: Cascade)
+  insuranceHistory     TrailerInsuranceHistory[]
+  comesaHistory        TrailerCOMESAHistory[]
 
   @@index([truckId])
   @@map("trailers")
@@ -102,9 +122,95 @@ model TruckCompliance {
   isCurrent      Boolean        @default(true) @map("is_current")
   createdAt      DateTime       @default(now()) @map("created_at")
 
-  truck Truck @relation(fields: [truckId], references: [truckId], onDelete: Cascade)
+  truck          Truck          @relation(fields: [truckId], references: [truckId], onDelete: Cascade)
 
   @@map("truck_compliance")
+}
+
+// History tables for certificate renewals
+model TruckInsuranceHistory {
+  id                   Int       @id @default(autoincrement())
+  truckId              Int       @map("truck_id")
+  policyNumber         String?   @map("policy_number")
+  serialNumber         String?   @map("serial_number")
+  insurer              String?
+  issuedDate           DateTime  @map("issued_date") @db.Date
+  expiryDate           DateTime  @map("expiry_date") @db.Date
+  purchaseDate         DateTime? @map("purchase_date") @db.Date
+  premiumAmount        Decimal?  @db.Decimal(12, 2)
+  notes                String?
+  createdAt            DateTime  @default(now()) @map("created_at")
+
+  truck                Truck     @relation(fields: [truckId], references: [truckId], onDelete: Cascade)
+
+  @@index([truckId])
+  @@map("truck_insurance_history")
+}
+
+model TruckTGLHistory {
+  id             Int       @id @default(autoincrement())
+  truckId        Int       @map("truck_id")
+  tglNumber      String?   @map("tgl_number")
+  tglYear        String?   @map("tgl_year")
+  issuedDate     DateTime? @map("issued_date") @db.Date
+  expiryDate     DateTime? @map("expiry_date") @db.Date
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  truck          Truck     @relation(fields: [truckId], references: [truckId], onDelete: Cascade)
+
+  @@index([truckId])
+  @@map("truck_tgl_history")
+}
+
+model TruckInspectionHistory {
+  id               Int       @id @default(autoincrement())
+  truckId          Int       @map("truck_id")
+  certNumber       String?   @map("cert_number")
+  inspectionBody   String?   @map("inspection_body")
+  issuedDate       DateTime  @map("issued_date") @db.Date
+  expiryDate       DateTime  @map("expiry_date") @db.Date
+  notes            String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  truck            Truck     @relation(fields: [truckId], references: [truckId], onDelete: Cascade)
+
+  @@index([truckId])
+  @@map("truck_inspection_history")
+}
+
+model TrailerInsuranceHistory {
+  id             Int       @id @default(autoincrement())
+  trailerId      Int       @map("trailer_id")
+  policyNumber   String?   @map("policy_number")
+  insurer        String?
+  issuedDate     DateTime  @map("issued_date") @db.Date
+  expiryDate     DateTime  @map("expiry_date") @db.Date
+  premiumAmount  Decimal?  @db.Decimal(12, 2)
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  trailer        Trailer   @relation(fields: [trailerId], references: [trailerId], onDelete: Cascade)
+
+  @@index([trailerId])
+  @@map("trailer_insurance_history")
+}
+
+model TrailerCOMESAHistory {
+  id             Int       @id @default(autoincrement())
+  trailerId      Int       @map("trailer_id")
+  policyNumber   String?   @map("policy_number")
+  insurer        String?
+  dateTaken      DateTime? @map("date_taken") @db.Date
+  dateExpiry     DateTime? @map("date_expiry") @db.Date
+  premiumAmount  Decimal?  @db.Decimal(12, 2)
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  trailer        Trailer   @relation(fields: [trailerId], references: [trailerId], onDelete: Cascade)
+
+  @@index([trailerId])
+  @@map("trailer_comesa_history")
 }
 
 model Driver {

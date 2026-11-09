@@ -158,7 +158,7 @@ const DRIVER_COLUMNS: Column[] = [
 const TRUCK_COLUMNS: Column[] = [
   { key: "registration_number", label: "Registration" },
   { key: "logbook_number", label: "Logbook No." },
-  { key: "controlTechUnitId", label: "TGL Unit" },
+  { key: "tgl_number", label: "TGL Unit" },
   { key: "truck_insurance_ref", label: "Insurance Policy" },
   { key: "truck_insurance_expiry", label: "Insurance Expiry" },
   { key: "speed_governor_expiry", label: "Speed Governor Expiry" },

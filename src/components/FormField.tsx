@@ -1,4 +1,4 @@
-import { forwardRef, type SelectHTMLAttributes, type InputHTMLAttributes } from "react";
+import { forwardRef, type SelectHTMLAttributes, type InputHTMLAttributes, type TextareaHTMLAttributes } from "react";
 
 interface FieldWrapperProps {
   label: string;
@@ -52,6 +52,28 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
   ),
 );
 TextField.displayName = "TextField";
+
+interface TextAreaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label: string;
+  error?: string;
+  mono?: boolean;
+  hint?: string;
+}
+
+export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>(
+  ({ label, error, mono, hint, id, className, ...props }, ref) => (
+    <FieldWrapper label={label} htmlFor={id!} error={error} hint={hint}>
+      <textarea
+        ref={ref}
+        id={id}
+        className={`${fieldClasses} ${mono ? "font-mono tracking-tight" : "font-body"} ${className ?? ""}`}
+        aria-invalid={!!error}
+        {...props}
+      />
+    </FieldWrapper>
+  ),
+);
+TextAreaField.displayName = "TextAreaField";
 
 interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string;

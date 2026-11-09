@@ -1,7 +1,21 @@
 import { Button } from "../components/Button";
-import type { TruckFormValues } from "../types/models";
+import type {
+  TruckFormValues,
+  TruckInsuranceHistory,
+  TruckTGLHistory,
+  TruckInspectionHistory,
+  TrailerInsuranceHistory,
+  TrailerCOMESAHistory,
+} from "../types/models";
 
-type TruckRecord = TruckFormValues & { id: number | string };
+type TruckRecord = TruckFormValues & {
+  id: number | string;
+  insuranceHistory?: TruckInsuranceHistory[];
+  tglHistory?: TruckTGLHistory[];
+  inspectionHistory?: TruckInspectionHistory[];
+  trailerInsuranceHistory?: TrailerInsuranceHistory[];
+  trailerCOMESAHistory?: TrailerCOMESAHistory[];
+};
 
 function Field({ label, value }: { label: string; value?: string | number | null }) {
   return (
@@ -45,6 +59,12 @@ export default function TruckDetailPage({ truck, onBack, onEdit }: TruckDetailPa
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Field label="Registration number" value={truck.registration_number} />
             <Field label="Year of manufacture" value={truck.year_of_manufacture} />
+            <Field label="Capacity (tonnes)" value={truck.capacity_tonnes} />
+            <Field label="Control Tech Unit ID" value={truck.controlTechUnitId} />
+            <Field label="Logbook number" value={truck.logbook_number} />
+            <Field label="TGL number" value={truck.tgl_number} />
+            <Field label="TGL year" value={truck.tgl_year} />
+            <Field label="Factors to note" value={truck.factors_to_note} />
           </dl>
         </section>
 
@@ -54,6 +74,33 @@ export default function TruckDetailPage({ truck, onBack, onEdit }: TruckDetailPa
             <Field label="Issued" value={truck.truck_insurance_issued} />
             <Field label="Expiry" value={truck.truck_insurance_expiry} />
             <Field label="Policy number" value={truck.truck_insurance_ref} />
+            <Field label="Serial number" value={truck.truck_insurance_serial} />
+            <Field label="Purchase date" value={truck.truck_insurance_purchase} />
+          </dl>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-ink">TGL</h2>
+          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <Field label="TGL number" value={truck.tgl_number} />
+            <Field label="TGL year" value={truck.tgl_year} />
+          </dl>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-ink">Inspection</h2>
+          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <Field label="Issued" value={truck.inspection_issued} />
+            <Field label="Expiry" value={truck.inspection_expiry} />
+            <Field label="Certificate number" value={truck.inspection_cert_number} />
+          </dl>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-ink">Speed governor</h2>
+          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <Field label="Issued" value={truck.speed_governor_issued} />
+            <Field label="Renewal due" value={truck.speed_governor_expiry} />
           </dl>
         </section>
 
@@ -68,28 +115,13 @@ export default function TruckDetailPage({ truck, onBack, onEdit }: TruckDetailPa
           </dl>
         </section>
 
-        <section>
-          <h2 className="mb-3 text-sm font-semibold text-ink">Inspection</h2>
-          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <Field label="Issued" value={truck.inspection_issued} />
-            <Field label="Expiry" value={truck.inspection_expiry} />
-          </dl>
-        </section>
-
-        <section>
-          <h2 className="mb-3 text-sm font-semibold text-ink">Speed governor</h2>
-          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <Field label="Issued" value={truck.speed_governor_issued} />
-            <Field label="Renewal due" value={truck.speed_governor_expiry} />
-          </dl>
-        </section>
-
         {trailer && (
           <>
             <section>
               <h2 className="mb-3 text-sm font-semibold text-ink">Trailer</h2>
               <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <Field label="Trailer registration" value={trailer.registration_number} />
+                <Field label="Trailer logbook number" value={trailer.logbook_number} />
               </dl>
             </section>
 
@@ -113,6 +145,112 @@ export default function TruckDetailPage({ truck, onBack, onEdit }: TruckDetailPa
               </dl>
             </section>
           </>
+        )}
+
+        {/* History Sections */}
+        {(truck.insuranceHistory && truck.insuranceHistory.length > 0) && (
+          <section>
+            <h2 className="mb-3 text-sm font-semibold text-ink">Truck Insurance History</h2>
+            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {truck.insuranceHistory.map((h, i) => (
+                <div key={i} className="col-span-4 border-b border-navy-950/10 py-2">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <Field label="Policy number" value={h.policyNumber} />
+                    <Field label="Serial number" value={h.serialNumber} />
+                    <Field label="Insurer" value={h.insurer} />
+                    <Field label="Issued" value={h.issuedDate} />
+                    <Field label="Expiry" value={h.expiryDate} />
+                    <Field label="Purchase date" value={h.purchaseDate} />
+                    <Field label="Premium" value={h.premiumAmount} />
+                    <Field label="Notes" value={h.notes} />
+                    <Field label="Recorded" value={h.createdAt} />
+                  </div>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
+
+        {(truck.tglHistory && truck.tglHistory.length > 0) && (
+          <section>
+            <h2 className="mb-3 text-sm font-semibold text-ink">TGL History</h2>
+            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {truck.tglHistory.map((h, i) => (
+                <div key={i} className="col-span-4 border-b border-navy-950/10 py-2">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <Field label="TGL number" value={h.tglNumber} />
+                    <Field label="TGL year" value={h.tglYear} />
+                    <Field label="Issued" value={h.issuedDate} />
+                    <Field label="Expiry" value={h.expiryDate} />
+                    <Field label="Notes" value={h.notes} />
+                    <Field label="Recorded" value={h.createdAt} />
+                  </div>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
+
+        {(truck.inspectionHistory && truck.inspectionHistory.length > 0) && (
+          <section>
+            <h2 className="mb-3 text-sm font-semibold text-ink">Inspection History</h2>
+            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {truck.inspectionHistory.map((h, i) => (
+                <div key={i} className="col-span-4 border-b border-navy-950/10 py-2">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <Field label="Cert number" value={h.certNumber} />
+                    <Field label="Inspection body" value={h.inspectionBody} />
+                    <Field label="Issued" value={h.issuedDate} />
+                    <Field label="Expiry" value={h.expiryDate} />
+                    <Field label="Notes" value={h.notes} />
+                    <Field label="Recorded" value={h.createdAt} />
+                  </div>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
+
+        {trailer && (truck.trailerInsuranceHistory && truck.trailerInsuranceHistory.length > 0) && (
+          <section>
+            <h2 className="mb-3 text-sm font-semibold text-ink">Trailer Insurance History</h2>
+            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {truck.trailerInsuranceHistory.map((h, i) => (
+                <div key={i} className="col-span-4 border-b border-navy-950/10 py-2">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <Field label="Policy number" value={h.policyNumber} />
+                    <Field label="Insurer" value={h.insurer} />
+                    <Field label="Issued" value={h.issuedDate} />
+                    <Field label="Expiry" value={h.expiryDate} />
+                    <Field label="Premium" value={h.premiumAmount} />
+                    <Field label="Notes" value={h.notes} />
+                    <Field label="Recorded" value={h.createdAt} />
+                  </div>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
+
+        {trailer && (truck.trailerCOMESAHistory && truck.trailerCOMESAHistory.length > 0) && (
+          <section>
+            <h2 className="mb-3 text-sm font-semibold text-ink">Trailer COMESA History</h2>
+            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {truck.trailerCOMESAHistory.map((h, i) => (
+                <div key={i} className="col-span-4 border-b border-navy-950/10 py-2">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <Field label="Policy number" value={h.policyNumber} />
+                    <Field label="Insurer" value={h.insurer} />
+                    <Field label="Date taken" value={h.dateTaken} />
+                    <Field label="Date expiry" value={h.dateExpiry} />
+                    <Field label="Premium" value={h.premiumAmount} />
+                    <Field label="Notes" value={h.notes} />
+                    <Field label="Recorded" value={h.createdAt} />
+                  </div>
+                </div>
+              ))}
+            </dl>
+          </section>
         )}
       </div>
     </div>

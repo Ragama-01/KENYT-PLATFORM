@@ -10,6 +10,7 @@ const currentYear = new Date().getFullYear();
 
 const trailerSchema = z.object({
   registration_number: z.string().optional(),
+  logbook_number: z.string().optional(),
 
   insurance_issued: dateStr.optional(),
   insurance_expiry: dateStr.optional(),
@@ -32,20 +33,35 @@ const truckBaseSchema = z.object({
   controlTechUnitId: z.number().int().positive().optional(),
   logbook_number: z.string().optional(),
 
-  inspection_issued: dateStr,
-  inspection_expiry: dateStr,
-  speed_governor_issued: dateStr,
-  speed_governor_expiry: dateStr,
-
+  // Truck insurance
   truck_insurance_issued: dateStr,
   truck_insurance_expiry: dateStr,
   truck_insurance_ref: z.string().optional(),
+  truck_insurance_serial: z.string().optional(),
+  truck_insurance_purchase: dateStr.optional(),
 
+  // TGL
+  tgl_number: z.string().optional(),
+  tgl_year: z.string().optional(),
+
+  // Inspection
+  inspection_issued: dateStr,
+  inspection_expiry: dateStr,
+  inspection_cert_number: z.string().optional(),
+
+  // Speed governor
+  speed_governor_issued: dateStr,
+  speed_governor_expiry: dateStr,
+
+  // COMESA
   truck_comesa_policy_number: z.string().min(1),
   truck_comesa_insurer: z.string().min(1),
   truck_comesa_date_taken: dateStr,
   truck_comesa_date_expiry: dateStr,
   truck_comesa_premium_amount: z.number().positive(),
+
+  // Notes
+  factors_to_note: z.string().optional(),
 
   trailer: trailerSchema.optional(),
 });

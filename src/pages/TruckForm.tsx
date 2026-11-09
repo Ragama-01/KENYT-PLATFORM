@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { TextField, FieldGroup } from "../components/FormField";
+import { TextField, TextAreaField, FieldGroup } from "../components/FormField";
 import { Button } from "../components/Button";
 import type { TruckFormValues } from "../types/models";
 
@@ -29,15 +29,28 @@ const schema = z
       .positive("Control Tech Unit ID must be a positive integer")
       .optional(),
     logbook_number: z.string().optional(),
-    inspection_issued: z.string().min(1, "Required"),
-    inspection_expiry: z.string().min(1, "Required"),
-    speed_governor_issued: z.string().min(1, "Required"),
-    speed_governor_expiry: z.string().min(1, "Required"),
 
+    // Truck insurance
     truck_insurance_issued: z.string().min(1, "Required"),
     truck_insurance_expiry: z.string().min(1, "Required"),
     truck_insurance_ref: z.string().optional(),
+    truck_insurance_serial: z.string().optional(),
+    truck_insurance_purchase: z.string().optional(),
 
+    // TGL
+    tgl_number: z.string().optional(),
+    tgl_year: z.string().optional(),
+
+    // Inspection
+    inspection_issued: z.string().min(1, "Required"),
+    inspection_expiry: z.string().min(1, "Required"),
+    inspection_cert_number: z.string().optional(),
+
+    // Speed governor
+    speed_governor_issued: z.string().min(1, "Required"),
+    speed_governor_expiry: z.string().min(1, "Required"),
+
+    // COMESA
     truck_comesa_policy_number: z.string().min(1, "Required"),
     truck_comesa_insurer: z.string().min(1, "Required"),
     truck_comesa_date_taken: z.string().min(1, "Required"),
@@ -46,10 +59,14 @@ const schema = z
       .number({ invalid_type_error: "Enter a valid amount" })
       .positive("Enter a valid amount"),
 
+    // Notes
+    factors_to_note: z.string().optional(),
+
     // --- Trailer ---
     trailer: z
       .object({
         registration_number: z.string().optional(),
+        logbook_number: z.string().optional(),
 
         insurance_issued: z.string().optional(),
         insurance_expiry: z.string().optional(),
@@ -233,6 +250,37 @@ export default function TruckForm({ onSubmit, truck, onViewAll }: TruckFormProps
             error={errors.truck_insurance_ref?.message}
             {...register("truck_insurance_ref")}
           />
+          <TextField
+            id="truck_insurance_serial"
+            label="Serial number"
+            mono
+            error={errors.truck_insurance_serial?.message}
+            {...register("truck_insurance_serial")}
+          />
+          <TextField
+            id="truck_insurance_purchase"
+            label="Purchase date"
+            type="date"
+            error={errors.truck_insurance_purchase?.message}
+            {...register("truck_insurance_purchase")}
+          />
+        </FieldGroup>
+
+        <FieldGroup title="TGL">
+          <TextField
+            id="tgl_number"
+            label="TGL Number"
+            mono
+            error={errors.tgl_number?.message}
+            {...register("tgl_number")}
+          />
+          <TextField
+            id="tgl_year"
+            label="TGL Year"
+            type="number"
+            error={errors.tgl_year?.message}
+            {...register("tgl_year")}
+          />
         </FieldGroup>
 
         <FieldGroup title="Truck COMESA">
@@ -288,6 +336,13 @@ export default function TruckForm({ onSubmit, truck, onViewAll }: TruckFormProps
             error={errors.inspection_expiry?.message}
             {...register("inspection_expiry")}
           />
+          <TextField
+            id="inspection_cert_number"
+            label="Certificate number"
+            mono
+            error={errors.inspection_cert_number?.message}
+            {...register("inspection_cert_number")}
+          />
         </FieldGroup>
 
         <FieldGroup title="Speed governor">
@@ -316,6 +371,14 @@ export default function TruckForm({ onSubmit, truck, onViewAll }: TruckFormProps
             placeholder="ZE 4021"
             error={errors.trailer?.registration_number?.message}
             {...register("trailer.registration_number")}
+          />
+          <TextField
+            id="trailer.logbook_number"
+            label="Trailer logbook number"
+            placeholder="e.g. LGB-12345"
+            hint="Trailer logbook number"
+            error={errors.trailer?.logbook_number?.message}
+            {...register("trailer.logbook_number")}
           />
         </FieldGroup>
 
@@ -378,6 +441,17 @@ export default function TruckForm({ onSubmit, truck, onViewAll }: TruckFormProps
             placeholder="e.g. 25000"
             error={errors.trailer?.comesa_premium_amount?.message}
             {...register("trailer.comesa_premium_amount")}
+          />
+        </FieldGroup>
+
+        <FieldGroup title="Notes">
+          <TextAreaField
+            id="factors_to_note"
+            label="Factors to note"
+            rows={3}
+            placeholder="Any additional notes or factors to note about this truck..."
+            error={errors.factors_to_note?.message}
+            {...register("factors_to_note")}
           />
         </FieldGroup>
 
