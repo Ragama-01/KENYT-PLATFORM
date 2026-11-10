@@ -199,7 +199,7 @@ export default function OrderForm({
         onSubmit={handleSubmit(submit)}
         className="flex flex-col gap-8"
       >
-        <FieldGroup title="Cargo">
+        <FieldGroup title="Cargo" columns={1}>
           <TextField
             label="BOL Number"
             id="bol_number"
@@ -259,11 +259,10 @@ export default function OrderForm({
           />
         </FieldGroup>
 
-        <FieldGroup title="Containers">
+        <FieldGroup title="Containers" columns={1}>
           <p className="text-sm text-ink-muted">
             Add each container with its own number, weight and contents. A single
             order can have multiple containers.
-
           </p>
           <div className="flex flex-col gap-6">
             {fields.map((field, index) => (
@@ -275,7 +274,7 @@ export default function OrderForm({
                   <span className="text-sm font-semibold text-ink">
                     Container #{index + 1}
                   </span>
-                  {fields.length >  1&& (
+                  {fields.length > 1 && (
                     <button
                       type="button"
                       className="text-sm font-medium text-red-600 hover:underline"
@@ -286,7 +285,7 @@ export default function OrderForm({
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4">
                   <TextField
                     label="Container Number"
                     id={`containers.${index}.container_number`}
@@ -350,7 +349,7 @@ export default function OrderForm({
           </div>
         </FieldGroup>
 
-        <FieldGroup title="Locations">
+        <FieldGroup title="Locations" columns={1}>
           <SelectField
             id="pickup_location_id"
             label="Pickup Location"
@@ -370,7 +369,7 @@ export default function OrderForm({
           />
         </FieldGroup>
 
-        <FieldGroup title="Consignee">
+        <FieldGroup title="Consignee" columns={1}>
           <TextField
             label="Consignee Name"
             id="consignee_name"

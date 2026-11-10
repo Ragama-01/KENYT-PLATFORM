@@ -112,14 +112,30 @@ SelectField.displayName = "SelectField";
 // Section heading used to group related fields within a form (e.g.
 // "Compliance" within the truck form) — a small gold tick + label,
 // echoes the manifest-stamp motif at a smaller scale.
-export function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
+export function FieldGroup({
+  title,
+  children,
+  columns = 2,
+}: {
+  title: string;
+  children: React.ReactNode;
+  columns?: 1 | 2;
+}) {
   return (
     <fieldset className="flex flex-col gap-4">
       <legend className="mb-1 flex items-center gap-2 font-display text-xs font-semibold uppercase tracking-wider text-navy-700">
         <span className="h-1.5 w-1.5 rounded-full bg-gold-500" />
         {title}
       </legend>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{children}</div>
+      <div
+        className={
+          columns === 1
+            ? "grid grid-cols-1 gap-4"
+            : "grid grid-cols-1 gap-4 sm:grid-cols-2"
+        }
+      >
+        {children}
+      </div>
     </fieldset>
   );
 }
