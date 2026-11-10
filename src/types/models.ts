@@ -309,8 +309,6 @@ export interface OrderFormValues {
 
   consignee_phone?: string;
 
-  free_storage_days: number;
-
   eta_discharge_date?: string;
 
   documentation_status?: string;

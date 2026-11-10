@@ -80,12 +80,6 @@ const schema = z.object({
 
   consignee_phone: z.string().optional(),
 
-  free_storage_days: z
-    .coerce
-    .number()
-    .min(0, "Free storage days cannot be negative")
-    .max(15, "Maximum 15 days"),
-
   eta_discharge_date: z.string().optional(),
 
   documentation_status: z.string().optional(),
@@ -153,7 +147,6 @@ export default function OrderForm({
       delivery_location_id: initialOrder?.delivery_location_id ?? ("" as any),
       consignee_name: initialOrder?.consignee_name ?? "",
       consignee_phone: initialOrder?.consignee_phone ?? "",
-      free_storage_days: initialOrder?.free_storage_days ?? ("" as any),
       eta_discharge_date: initialOrder?.eta_discharge_date
         ? String(initialOrder.eta_discharge_date).slice(0, 10)
         : "",
@@ -192,8 +185,6 @@ export default function OrderForm({
   const gfDoType = watch("gf_do_type");
   const im4Im7Type = watch("im4_im7_type");
 
-  const freeDays = watch("free_storage_days");
-
   const readFileAsDataUrl = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -201,24 +192,6 @@ export default function OrderForm({
       reader.onerror = () => reject(new Error("Failed to read file"));
       reader.readAsDataURL(file);
     });
-
-  const urgency =
-    freeDays == null
-      ? null
-      : freeDays <= 2
-      ? {
-          label: "High urgency",
-          tone: "text-red-700",
-        }
-      : freeDays <= 5
-      ? {
-          label: "Medium urgency",
-          tone: "text-yellow-600",
-        }
-      : {
-          label: "Low urgency",
-          tone: "text-green-700",
-        };
 
   const locationOptions = locations.map((l) => ({
     value: String(l.locationId),
@@ -285,22 +258,6 @@ export default function OrderForm({
             {...register("load_type")}
             error={errors.load_type?.message}
           />
-
-          <TextField
-            label="Free Storage Days"
-            id="free_storage_days"
-            type="number"
-            max={15}
-            {...register("free_storage_days")}
-            error={errors.free_storage_days?.message}
-            hint="Maximum 15 days"
-          />
-
-          {urgency && (
-            <span className={urgency.tone}>
-              {urgency.label}
-            </span>
-          )}
 
           <TextField
             label="ETA Discharge Date"
