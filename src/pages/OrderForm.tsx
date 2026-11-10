@@ -25,13 +25,6 @@ const LOAD_TYPES = [
   { value: "20/40 open reel-special", label: "20/40 Open Reel (Special)" },
 ];
 
-const DOCUMENTATION_STATUS_OPTIONS = [
-  { value: "pending", label: "Pending" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "complete", label: "Complete" },
-  { value: "on_hold", label: "On Hold" },
-];
-
 const GF_DO_OPTIONS = [
   { value: "", label: "None" },
   { value: "GF", label: "GF Given" },
@@ -267,14 +260,7 @@ export default function OrderForm({
             error={errors.eta_discharge_date?.message}
           />
 
-          <SelectField
-            id="documentation_status"
-            label="Documentation Status"
-            options={DOCUMENTATION_STATUS_OPTIONS}
-            placeholder="Select documentation status"
-            {...register("documentation_status")}
-            error={errors.documentation_status?.message}
-          />
+          <span className="text-sm font-semibold text-ink">Documentation Status</span>
 
           <div className="rounded-lg border border-navy-950/10 p-4 flex flex-col gap-4">
             <span className="text-sm font-semibold text-ink">GF / DO</span>
