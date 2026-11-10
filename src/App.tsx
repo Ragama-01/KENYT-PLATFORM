@@ -235,6 +235,12 @@ export default function App() {
       free_storage_days: order.freeStorageDays,
       eta_discharge_date: order.etaDischargeDate,
       documentation_status: order.documentationStatus,
+      gf_do_type: order.gfDoType,
+      gf_do_document: order.gfDoDocument,
+      gf_do_document_name: order.gfDoDocumentName,
+      im4_im7_type: order.im4Im7Type,
+      im4_im7_document: order.im4Im7Document,
+      im4_im7_document_name: order.im4Im7DocumentName,
       special_instructions: order.specialInstructions,
     }));
 
@@ -827,7 +833,12 @@ export default function App() {
 
     {section === "orders" && orderView.mode === "form" && (
       <OrderForm
-        onSubmit={handleSaveOrder}
+        initialOrder={orderView.order}
+        onSubmit={(values) =>
+          orderView.order?.id
+            ? handleUpdateOrder({ ...values, id: orderView.order.id })
+            : handleSaveOrder(values)
+        }
         onViewAll={() =>
           setOrderView({
             mode: "list",
@@ -889,6 +900,46 @@ export default function App() {
                 <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-navy-50 text-navy-700">
                   {orderView.order.status || "pending"}
                 </span>
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-ink-muted">Documentation Status</label>
+              <p className="mt-1 text-ink">{orderView.order.documentation_status || "—"}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-ink-muted">GF / DO</label>
+              <p className="mt-1 text-ink">
+                {orderView.order.gf_do_type ? `${orderView.order.gf_do_type} given` : "—"}
+                {orderView.order.gf_do_document && (
+                  <>
+                    {" — "}
+                    <a
+                      href={orderView.order.gf_do_document}
+                      download={orderView.order.gf_do_document_name || "gf-do-document"}
+                      className="text-navy-700 underline"
+                    >
+                      {orderView.order.gf_do_document_name || "Download document"}
+                    </a>
+                  </>
+                )}
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-ink-muted">IM4 / IM7</label>
+              <p className="mt-1 text-ink">
+                {orderView.order.im4_im7_type ? `${orderView.order.im4_im7_type} given` : "—"}
+                {orderView.order.im4_im7_document && (
+                  <>
+                    {" — "}
+                    <a
+                      href={orderView.order.im4_im7_document}
+                      download={orderView.order.im4_im7_document_name || "im4-im7-document"}
+                      className="text-navy-700 underline"
+                    >
+                      {orderView.order.im4_im7_document_name || "Download document"}
+                    </a>
+                  </>
+                )}
               </p>
             </div>
           </div>

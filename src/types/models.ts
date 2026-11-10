@@ -315,5 +315,13 @@ export interface OrderFormValues {
 
   documentation_status?: string;
 
+  gf_do_type?: string;
+  gf_do_document?: string;
+  gf_do_document_name?: string;
+
+  im4_im7_type?: string;
+  im4_im7_document?: string;
+  im4_im7_document_name?: string;
+
   special_instructions?: string;
 }

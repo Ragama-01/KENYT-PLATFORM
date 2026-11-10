@@ -282,6 +282,14 @@ model Order {
 
   documentationStatus String? @map("documentation_status")
 
+  gfDoType String? @map("gf_do_type")
+  gfDoDocument String? @map("gf_do_document")
+  gfDoDocumentName String? @map("gf_do_document_name")
+
+  im4Im7Type String? @map("im4_im7_type")
+  im4Im7Document String? @map("im4_im7_document")
+  im4Im7DocumentName String? @map("im4_im7_document_name")
+
   priority String @default("normal")
 
   specialInstructions String?

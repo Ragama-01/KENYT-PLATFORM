@@ -107,6 +107,14 @@ export default async function orderRoutes(app: FastifyInstance) {
 
           documentationStatus: body.documentation_status || null,
 
+          gfDoType: body.gf_do_type || null,
+          gfDoDocument: body.gf_do_document || null,
+          gfDoDocumentName: body.gf_do_document_name || null,
+
+          im4Im7Type: body.im4_im7_type || null,
+          im4Im7Document: body.im4_im7_document || null,
+          im4Im7DocumentName: body.im4_im7_document_name || null,
+
           specialInstructions: body.special_instructions || null,
 
           containers: {
@@ -186,7 +194,7 @@ export default async function orderRoutes(app: FastifyInstance) {
       }))
     );
   });
-/**
+  /**
    * Get one order
    */
   app.get("/orders/:id", async (request: any, reply) => {
@@ -211,6 +219,53 @@ export default async function orderRoutes(app: FastifyInstance) {
       id: order.orderId,
       ...order,
     });
+  });
+
+  /**
+   * Update order (documentation and core fields)
+   */
+  app.put("/orders/:id", async (request: any, reply) => {
+    const body = request.body;
+    const orderId = Number(request.params.id);
+    try {
+      const data: any = {};
+      if (body.bol_number !== undefined) data.bolNumber = body.bol_number || null;
+      if (body.customer_name !== undefined) data.customerName = body.customer_name;
+      if (body.load_type !== undefined) data.loadType = body.load_type;
+      if (body.consignee_name !== undefined) data.consigneeName = body.consignee_name;
+      if (body.consignee_phone !== undefined) data.consigneePhone = body.consignee_phone || null;
+      if (body.free_storage_days !== undefined) data.freeStorageDays = body.free_storage_days ?? null;
+      if (body.eta_discharge_date !== undefined)
+        data.etaDischargeDate = body.eta_discharge_date ? new Date(body.eta_discharge_date) : null;
+      if (body.documentation_status !== undefined) data.documentationStatus = body.documentation_status || null;
+      if (body.gf_do_type !== undefined) data.gfDoType = body.gf_do_type || null;
+      if (body.gf_do_document !== undefined) data.gfDoDocument = body.gf_do_document || null;
+      if (body.gf_do_document_name !== undefined) data.gfDoDocumentName = body.gf_do_document_name || null;
+      if (body.im4_im7_type !== undefined) data.im4Im7Type = body.im4_im7_type || null;
+      if (body.im4_im7_document !== undefined) data.im4Im7Document = body.im4_im7_document || null;
+      if (body.im4_im7_document_name !== undefined) data.im4Im7DocumentName = body.im4_im7_document_name || null;
+      if (body.special_instructions !== undefined) data.specialInstructions = body.special_instructions || null;
+      if (body.pickup_location_id !== undefined) data.pickupLocationId = Number(body.pickup_location_id);
+      if (body.delivery_location_id !== undefined) data.deliveryLocationId = Number(body.delivery_location_id);
+
+      const order = await prisma.order.update({
+        where: { orderId },
+        data,
+        include: {
+          pickupLocation: true,
+          deliveryLocation: true,
+          containers: true,
+        },
+      });
+
+      return reply.send({ id: order.orderId, ...order });
+    } catch (err) {
+      request.log.error(err);
+      return reply.status(500).send({
+        error: "server_error",
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
   });
 
   /**

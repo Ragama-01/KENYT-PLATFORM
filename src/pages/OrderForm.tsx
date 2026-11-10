@@ -32,6 +32,18 @@ const DOCUMENTATION_STATUS_OPTIONS = [
   { value: "on_hold", label: "On Hold" },
 ];
 
+const GF_DO_OPTIONS = [
+  { value: "", label: "None" },
+  { value: "GF", label: "GF Given" },
+  { value: "DO", label: "DO Given" },
+];
+
+const IM4_IM7_OPTIONS = [
+  { value: "", label: "None" },
+  { value: "IM4", label: "IM4 Given" },
+  { value: "IM7", label: "IM7 Given" },
+];
+
 const containerSchema = z.object({
   container_number: z.string().min(1, "Container number is required"),
   container_type: z.string().optional(),
@@ -78,6 +90,14 @@ const schema = z.object({
 
   documentation_status: z.string().optional(),
 
+  gf_do_type: z.string().optional(),
+  gf_do_document: z.string().optional(),
+  gf_do_document_name: z.string().optional(),
+
+  im4_im7_type: z.string().optional(),
+  im4_im7_document: z.string().optional(),
+  im4_im7_document_name: z.string().optional(),
+
   special_instructions: z.string().optional(),
 });
 
@@ -86,11 +106,13 @@ interface Props {
     values: OrderFormValues
   ) => Promise<void>;
   onViewAll?: () => void;
+  initialOrder?: any;
 }
 
 export default function OrderForm({
   onSubmit,
   onViewAll,
+  initialOrder,
 }: Props) {
   const [locations, setLocations] = useState<Location[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -116,6 +138,7 @@ export default function OrderForm({
     handleSubmit,
     watch,
     control,
+    setValue,
     formState: {
       errors,
       isSubmitting,
@@ -123,14 +146,41 @@ export default function OrderForm({
   } = useForm<OrderFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      containers: [
-        {
-          container_number: "",
-          container_type: "",
-          weight_tonnes: undefined as any,
-          cargo_type: "",
-        },
-      ],
+      bol_number: initialOrder?.bol_number ?? "",
+      customer_name: initialOrder?.customer_name ?? "",
+      load_type: initialOrder?.load_type ?? undefined,
+      pickup_location_id: initialOrder?.pickup_location_id ?? ("" as any),
+      delivery_location_id: initialOrder?.delivery_location_id ?? ("" as any),
+      consignee_name: initialOrder?.consignee_name ?? "",
+      consignee_phone: initialOrder?.consignee_phone ?? "",
+      free_storage_days: initialOrder?.free_storage_days ?? ("" as any),
+      eta_discharge_date: initialOrder?.eta_discharge_date
+        ? String(initialOrder.eta_discharge_date).slice(0, 10)
+        : "",
+      documentation_status: initialOrder?.documentation_status ?? "",
+      gf_do_type: initialOrder?.gf_do_type ?? "",
+      gf_do_document: initialOrder?.gf_do_document ?? "",
+      gf_do_document_name: initialOrder?.gf_do_document_name ?? "",
+      im4_im7_type: initialOrder?.im4_im7_type ?? "",
+      im4_im7_document: initialOrder?.im4_im7_document ?? "",
+      im4_im7_document_name: initialOrder?.im4_im7_document_name ?? "",
+      special_instructions: initialOrder?.special_instructions ?? "",
+      containers:
+        initialOrder?.containers?.length > 0
+          ? initialOrder.containers.map((c: any) => ({
+              container_number: c.containerNumber ?? c.container_number ?? "",
+              container_type: c.containerType ?? c.container_type ?? "",
+              weight_tonnes: c.weightTonnes ?? c.weight_tonnes ?? undefined,
+              cargo_type: c.cargoType ?? c.cargo_type ?? "",
+            }))
+          : [
+              {
+                container_number: "",
+                container_type: "",
+                weight_tonnes: undefined as any,
+                cargo_type: "",
+              },
+            ],
     },
   });
 
@@ -139,7 +189,18 @@ export default function OrderForm({
     name: "containers",
   });
 
+  const gfDoType = watch("gf_do_type");
+  const im4Im7Type = watch("im4_im7_type");
+
   const freeDays = watch("free_storage_days");
+
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    });
 
   const urgency =
     freeDays == null
@@ -187,11 +248,11 @@ export default function OrderForm({
     <div>
       <header className="mb-8">
         <h1 className="font-display text-2xl font-semibold">
-          New Order
+          {initialOrder ? "Edit Order" : "New Order"}
         </h1>
 
         <p className="text-sm text-gray-500">
-          Capture customer order.
+          {initialOrder ? "Update customer order and documentation." : "Capture customer order."}
         </p>
       </header>
 
@@ -257,6 +318,94 @@ export default function OrderForm({
             {...register("documentation_status")}
             error={errors.documentation_status?.message}
           />
+
+          <div className="rounded-lg border border-navy-950/10 p-4 flex flex-col gap-4">
+            <span className="text-sm font-semibold text-ink">GF / DO</span>
+            <SelectField
+              id="gf_do_type"
+              label="GF or DO Given"
+              options={GF_DO_OPTIONS}
+              {...register("gf_do_type", {
+                onChange: (e) => {
+                  if (!e.target.value) {
+                    setValue("gf_do_document", "");
+                    setValue("gf_do_document_name", "");
+                  }
+                },
+              })}
+            />
+            {gfDoType && (
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="gf_do_document" className="text-sm font-medium text-ink">
+                  Upload {gfDoType} Document
+                </label>
+                <input
+                  id="gf_do_document"
+                  type="file"
+                  accept=".pdf,image/*,.doc,.docx"
+                  className="rounded-md border border-navy-600/20 bg-white px-3 py-2 text-sm text-ink"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const data = await readFileAsDataUrl(file);
+                    setValue("gf_do_document", data, { shouldDirty: true });
+                    setValue("gf_do_document_name", file.name, { shouldDirty: true });
+                  }}
+                />
+                <input type="hidden" {...register("gf_do_document")} />
+                <input type="hidden" {...register("gf_do_document_name")} />
+                {watch("gf_do_document_name") && (
+                  <span className="text-xs text-ink-muted">
+                    Selected: {watch("gf_do_document_name")}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-navy-950/10 p-4 flex flex-col gap-4">
+            <span className="text-sm font-semibold text-ink">IM4 / IM7</span>
+            <SelectField
+              id="im4_im7_type"
+              label="IM4 or IM7 Given"
+              options={IM4_IM7_OPTIONS}
+              {...register("im4_im7_type", {
+                onChange: (e) => {
+                  if (!e.target.value) {
+                    setValue("im4_im7_document", "");
+                    setValue("im4_im7_document_name", "");
+                  }
+                },
+              })}
+            />
+            {im4Im7Type && (
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="im4_im7_document" className="text-sm font-medium text-ink">
+                  Upload {im4Im7Type} Document
+                </label>
+                <input
+                  id="im4_im7_document"
+                  type="file"
+                  accept=".pdf,image/*,.doc,.docx"
+                  className="rounded-md border border-navy-600/20 bg-white px-3 py-2 text-sm text-ink"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const data = await readFileAsDataUrl(file);
+                    setValue("im4_im7_document", data, { shouldDirty: true });
+                    setValue("im4_im7_document_name", file.name, { shouldDirty: true });
+                  }}
+                />
+                <input type="hidden" {...register("im4_im7_document")} />
+                <input type="hidden" {...register("im4_im7_document_name")} />
+                {watch("im4_im7_document_name") && (
+                  <span className="text-xs text-ink-muted">
+                    Selected: {watch("im4_im7_document_name")}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </FieldGroup>
 
         <FieldGroup title="Containers" columns={1}>
