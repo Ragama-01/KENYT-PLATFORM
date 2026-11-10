@@ -69,6 +69,8 @@ const schema = z.object({
     .number()
     .min(1, "Select a delivery location"),
 
+  empty_drop_off: z.string().optional(),
+
   consignee_name: z.string().min(1, "Consignee name is required"),
 
   consignee_phone: z.string().optional(),
@@ -138,6 +140,7 @@ export default function OrderForm({
       load_type: initialOrder?.load_type ?? undefined,
       pickup_location_id: initialOrder?.pickup_location_id ?? ("" as any),
       delivery_location_id: initialOrder?.delivery_location_id ?? ("" as any),
+      empty_drop_off: initialOrder?.empty_drop_off ?? "",
       consignee_name: initialOrder?.consignee_name ?? "",
       consignee_phone: initialOrder?.consignee_phone ?? "",
       eta_discharge_date: initialOrder?.eta_discharge_date
@@ -458,6 +461,14 @@ export default function OrderForm({
             options={locationOptions}
             {...register("delivery_location_id")}
             error={errors.delivery_location_id?.message}
+          />
+
+          <TextField
+            id="empty_drop_off"
+            label="Empty Drop Off"
+            placeholder="Enter empty drop off location"
+            {...register("empty_drop_off")}
+            error={errors.empty_drop_off?.message}
           />
         </FieldGroup>
 

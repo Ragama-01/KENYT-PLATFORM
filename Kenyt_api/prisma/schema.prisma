@@ -273,6 +273,8 @@ model Order {
 
   deliveryLocation Location @relation("DeliveryLocation", fields: [deliveryLocationId], references: [locationId])
 
+  emptyDropOff String? @map("empty_drop_off")
+
   consigneeName  String
   consigneePhone String?
 

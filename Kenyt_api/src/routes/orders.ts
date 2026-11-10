@@ -96,6 +96,8 @@ export default async function orderRoutes(app: FastifyInstance) {
             },
           },
 
+          emptyDropOff: body.empty_drop_off || null,
+
           consigneeName: body.consignee_name,
           consigneePhone: body.consignee_phone || null,
 
@@ -247,6 +249,7 @@ export default async function orderRoutes(app: FastifyInstance) {
       if (body.special_instructions !== undefined) data.specialInstructions = body.special_instructions || null;
       if (body.pickup_location_id !== undefined) data.pickupLocationId = Number(body.pickup_location_id);
       if (body.delivery_location_id !== undefined) data.deliveryLocationId = Number(body.delivery_location_id);
+      if (body.empty_drop_off !== undefined) data.emptyDropOff = body.empty_drop_off || null;
 
       const order = await prisma.order.update({
         where: { orderId },

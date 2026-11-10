@@ -230,6 +230,7 @@ export default function App() {
       delivery_location_id: order.deliveryLocation?.locationId,
       pickup_location_name: order.pickupLocation?.name,
       delivery_location_name: order.deliveryLocation?.name,
+      empty_drop_off: order.emptyDropOff,
       consignee_name: order.consigneeName,
       consignee_phone: order.consigneePhone,
       free_storage_days: order.freeStorageDays,
@@ -893,6 +894,10 @@ export default function App() {
             <div>
               <label className="text-sm font-medium text-ink-muted">Weight</label>
               <p className="mt-1 text-ink">{orderView.order.weight_tonnes} tonnes</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-ink-muted">Empty Drop Off</label>
+              <p className="mt-1 text-ink">{orderView.order.empty_drop_off || "—"}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-ink-muted">Status</label>

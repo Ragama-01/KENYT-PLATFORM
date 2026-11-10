@@ -305,6 +305,8 @@ export interface OrderFormValues {
 
   delivery_location_id: number;
 
+  empty_drop_off?: string;
+
   consignee_name: string;
 
   consignee_phone?: string;
