@@ -242,6 +242,9 @@ export default function App() {
       im4_im7_type: order.im4Im7Type,
       im4_im7_document: order.im4Im7Document,
       im4_im7_document_name: order.im4Im7DocumentName,
+      wt8_type: order.wt8Type,
+      wt8_document: order.wt8Document,
+      wt8_document_name: order.wt8DocumentName,
       special_instructions: order.specialInstructions,
     }));
 
@@ -942,6 +945,24 @@ export default function App() {
                       className="text-navy-700 underline"
                     >
                       {orderView.order.im4_im7_document_name || "Download document"}
+                    </a>
+                  </>
+                )}
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-ink-muted">WT8</label>
+              <p className="mt-1 text-ink">
+                {orderView.order.wt8_type ? `${orderView.order.wt8_type} given` : "—"}
+                {orderView.order.wt8_document && (
+                  <>
+                    {" — "}
+                    <a
+                      href={orderView.order.wt8_document}
+                      download={orderView.order.wt8_document_name || "wt8-document"}
+                      className="text-navy-700 underline"
+                    >
+                      {orderView.order.wt8_document_name || "Download document"}
                     </a>
                   </>
                 )}

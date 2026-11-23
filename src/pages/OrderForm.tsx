@@ -37,6 +37,11 @@ const IM4_IM7_OPTIONS = [
   { value: "IM7", label: "IM7 Given" },
 ];
 
+const WT8_OPTIONS = [
+  { value: "", label: "None" },
+  { value: "WT8", label: "WT8 Given" },
+];
+
 const containerSchema = z.object({
   container_number: z.string().min(1, "Container number is required"),
   container_type: z.string().optional(),
@@ -86,6 +91,10 @@ const schema = z.object({
   im4_im7_type: z.string().optional(),
   im4_im7_document: z.string().optional(),
   im4_im7_document_name: z.string().optional(),
+
+  wt8_type: z.string().optional(),
+  wt8_document: z.string().optional(),
+  wt8_document_name: z.string().optional(),
 
   special_instructions: z.string().optional(),
 });
@@ -153,6 +162,9 @@ export default function OrderForm({
       im4_im7_type: initialOrder?.im4_im7_type ?? "",
       im4_im7_document: initialOrder?.im4_im7_document ?? "",
       im4_im7_document_name: initialOrder?.im4_im7_document_name ?? "",
+      wt8_type: initialOrder?.wt8_type ?? "",
+      wt8_document: initialOrder?.wt8_document ?? "",
+      wt8_document_name: initialOrder?.wt8_document_name ?? "",
       special_instructions: initialOrder?.special_instructions ?? "",
       containers:
         initialOrder?.containers?.length > 0
@@ -180,6 +192,7 @@ export default function OrderForm({
 
   const gfDoType = watch("gf_do_type");
   const im4Im7Type = watch("im4_im7_type");
+  const wt8Type = watch("wt8_type");
 
   const readFileAsDataUrl = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -347,6 +360,50 @@ export default function OrderForm({
                 {watch("im4_im7_document_name") && (
                   <span className="text-xs text-ink-muted">
                     Selected: {watch("im4_im7_document_name")}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-navy-950/10 p-4 flex flex-col gap-4">
+            <span className="text-sm font-semibold text-ink">WT8</span>
+            <SelectField
+              id="wt8_type"
+              label="WT8 Given"
+              options={WT8_OPTIONS}
+              {...register("wt8_type", {
+                onChange: (e) => {
+                  if (!e.target.value) {
+                    setValue("wt8_document", "");
+                    setValue("wt8_document_name", "");
+                  }
+                },
+              })}
+            />
+            {wt8Type && (
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="wt8_document" className="text-sm font-medium text-ink">
+                  Upload {wt8Type} Document
+                </label>
+                <input
+                  id="wt8_document"
+                  type="file"
+                  accept=".pdf,image/*,.doc,.docx"
+                  className="rounded-md border border-navy-600/20 bg-white px-3 py-2 text-sm text-ink"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const data = await readFileAsDataUrl(file);
+                    setValue("wt8_document", data, { shouldDirty: true });
+                    setValue("wt8_document_name", file.name, { shouldDirty: true });
+                  }}
+                />
+                <input type="hidden" {...register("wt8_document")} />
+                <input type="hidden" {...register("wt8_document_name")} />
+                {watch("wt8_document_name") && (
+                  <span className="text-xs text-ink-muted">
+                    Selected: {watch("wt8_document_name")}
                   </span>
                 )}
               </div>

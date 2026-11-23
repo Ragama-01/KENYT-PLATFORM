@@ -323,5 +323,9 @@ export interface OrderFormValues {
   im4_im7_document?: string;
   im4_im7_document_name?: string;
 
+  wt8_type?: string;
+  wt8_document?: string;
+  wt8_document_name?: string;
+
   special_instructions?: string;
 }

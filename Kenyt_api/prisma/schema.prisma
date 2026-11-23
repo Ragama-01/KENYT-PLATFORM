@@ -292,6 +292,10 @@ model Order {
   im4Im7Document String? @map("im4_im7_document")
   im4Im7DocumentName String? @map("im4_im7_document_name")
 
+  wt8Type String? @map("wt8_type")
+  wt8Document String? @map("wt8_document")
+  wt8DocumentName String? @map("wt8_document_name")
+
   priority String @default("normal")
 
   specialInstructions String?

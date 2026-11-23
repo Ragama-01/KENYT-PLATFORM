@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { sendOrderCreatedNotification } from "../services/email.service";
+import { sendOrderToMake } from "../services/makeWebhook";
 
 export default async function orderRoutes(app: FastifyInstance) {
   /**
@@ -117,6 +118,10 @@ export default async function orderRoutes(app: FastifyInstance) {
           im4Im7Document: body.im4_im7_document || null,
           im4Im7DocumentName: body.im4_im7_document_name || null,
 
+          wt8Type: body.wt8_type || null,
+          wt8Document: body.wt8_document || null,
+          wt8DocumentName: body.wt8_document_name || null,
+
           specialInstructions: body.special_instructions || null,
 
           containers: {
@@ -154,7 +159,17 @@ export default async function orderRoutes(app: FastifyInstance) {
       } catch (notifErr) {
         request.log.warn(
           { err: notifErr },
-          "Order created but notification email failed to send"
+          "Order created but notification email failed to send",
+        );
+      }
+
+      // Notify Make.com webhook (never fail the order save on webhook errors)
+      try {
+        await sendOrderToMake(order, order.containers, request.log);
+      } catch (makeErr) {
+        request.log.warn(
+          { err: makeErr },
+          "Order created but Make webhook failed to send",
         );
       }
 
@@ -246,6 +261,9 @@ export default async function orderRoutes(app: FastifyInstance) {
       if (body.im4_im7_type !== undefined) data.im4Im7Type = body.im4_im7_type || null;
       if (body.im4_im7_document !== undefined) data.im4Im7Document = body.im4_im7_document || null;
       if (body.im4_im7_document_name !== undefined) data.im4Im7DocumentName = body.im4_im7_document_name || null;
+      if (body.wt8_type !== undefined) data.wt8Type = body.wt8_type || null;
+      if (body.wt8_document !== undefined) data.wt8Document = body.wt8_document || null;
+      if (body.wt8_document_name !== undefined) data.wt8DocumentName = body.wt8_document_name || null;
       if (body.special_instructions !== undefined) data.specialInstructions = body.special_instructions || null;
       if (body.pickup_location_id !== undefined) data.pickupLocationId = Number(body.pickup_location_id);
       if (body.delivery_location_id !== undefined) data.deliveryLocationId = Number(body.delivery_location_id);
