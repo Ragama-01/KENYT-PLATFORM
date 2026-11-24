@@ -324,7 +324,7 @@ return (
               capacity.
             </p>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               {containers.map((c, i) => {
                 const suitable = suggestedTrucks
                   .map((s) => trucksById.get(String(s.truckId)))
@@ -335,46 +335,71 @@ return (
                 return (
                   <div
                     key={c.containerId}
-                    className="rounded-lg border p-4 bg-white"
+                    className="rounded-lg border p-5 bg-white"
                   >
-                    <div className="flex items-baseline justify-between gap-2">
-                      <div className="flex-1">
-                        <div className="font-semibold text-ink">
-                          #{i + 1} {c.containerNumber || "—"}
+                    <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+                      <div className="lg:w-1/3">
+                        <div className="font-semibold text-ink text-sm">
+                          Container #{i + 1}: {c.containerNumber || "—"}
                         </div>
-                        <div className="text-sm text-ink-muted">
+                        <div className="mt-1 text-sm text-ink-muted">
                           {c.containerType || "Any type"} •{" "}
                           {c.cargoType || "n/a"} •{" "}
                           {Number(c.weightTonnes)} t
                         </div>
                       </div>
 
-                      <label className="text-sm font-medium text-ink-muted">
-                        Truck
-                        <select
-                          value={current}
-                          onChange={(e) =>
-                            handleTruckChange(c.containerId, e.target.value)
-                          }
-                          className="block w-56 rounded-lg border border-navy-950/20 bg-white px-2 py-1.5 text-sm text-ink"
-                        >
-                          <option value="">Select truck...</option>
-                          {suitable.map((t) => {
-                            const suggestion = suggestedTrucks.find(
-                              (s) => String(s.truckId) === String(t.truckId)
-                            );
-                            return (
-                              <option
-                                key={t.truckId}
-                                value={String(t.truckId)}
-                              >
-                                {t.registration_number} (
-                                {Number(t.capacity_tonnes)} t){suggestion ? ` • ${suggestion.distanceKm.toFixed(1)} km from pickup` : ""}
-                              </option>
-                            );
-                          })}
-                        </select>
-                      </label>
+                      <div className="flex-1">
+                        <div className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">
+                          Select truck
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {suitable.length === 0 ? (
+                            <p className="text-sm text-red-600">
+                              No truck can carry this container
+                            </p>
+                          ) : (
+                            suitable.map((t) => {
+                              const suggestion = suggestedTrucks.find(
+                                (s) => String(s.truckId) === String(t.truckId)
+                              );
+                              const isSelected =
+                                current === String(t.truckId);
+                              return (
+                                <label
+                                  key={t.truckId}
+                                  className={`flex items-center gap-2 rounded-lg border p-3 cursor-pointer transition-colors ${
+                                    isSelected
+                                      ? "border-green-600 bg-green-50"
+                                      : "border-navy-950/10 bg-white hover:border-navy-950/30"
+                                  }`}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`container_${c.containerId}`}
+                                    checked={isSelected}
+                                    onChange={() =>
+                                      handleTruckChange(
+                                        c.containerId,
+                                        String(t.truckId)
+                                      )
+                                    }
+                                    className="h-4 w-4 text-green-600"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-semibold text-ink truncate">
+                                      {t.registration_number}
+                                    </div>
+                                    <div className="text-xs text-ink-muted">
+                                      {Number(t.capacity_tonnes)} t cap{suggestion ? ` • ${suggestion.distanceKm.toFixed(1)} km` : ""}
+                                    </div>
+                                  </div>
+                                </label>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -382,8 +407,8 @@ return (
             </div>
 
             {selectedTruckIds.size > 0 && (
-              <div className="rounded-lg border p-4 bg-white">
-                <div className="text-sm font-semibold text-ink">
+              <div className="mt-4 rounded-lg border p-4 bg-white">
+                <div className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">
                   Load summary
                 </div>
                 {trucks
