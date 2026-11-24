@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FieldGroup } from "../components/FormField";
 import { Button } from "../components/Button";
 import { API_BASE } from "../lib/api";
@@ -84,7 +84,10 @@ export default function AllocationForm({
 
   // All trucks known to the system (not filtered by status), enriched with
   // distance to the selected order's pickup location when suggestions are loaded.
-  const trucksById = new Map(trucks.map((t) => [String(t.truckId || t.id), t]));
+  const trucksById = useMemo(
+    () => new Map(trucks.map((t) => [String(t.truckId || t.id), t])),
+    [trucks]
+  );
 
   const canCarry = (truck: any, weight: number): boolean => {
     const max = maxCargo(truck.capacity_tonnes);
@@ -162,12 +165,14 @@ export default function AllocationForm({
       );
       if (fit) next[String(c.containerId)] = String(fit.truckId);
     }
+    console.log("AUTO-SELECT RAN", selectedOrderId, JSON.stringify(next));
     setAssignments(next);
     setSingleTruckId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrderId, suggestedTrucks, trucksById]);
+  }, [selectedOrderId, suggestedTrucks]);
 // Track the truck that would carry a given container (empty string = none).
   const handleTruckChange = (containerId: number, truckId: string) => {
+    console.log("CLICK", containerId, truckId);
     const key = String(containerId);
     const next = { ...assignments };
     next[key] = truckId;
