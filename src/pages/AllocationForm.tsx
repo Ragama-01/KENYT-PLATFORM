@@ -353,7 +353,7 @@ return (
                         <div className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-3">
                           Select truck
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-5">
+                        <div className="space-y-2">
                           {suitable.length === 0 ? (
                             <p className="text-sm text-red-600">
                               No truck can carry this container
@@ -368,7 +368,7 @@ return (
                               return (
                                 <label
                                   key={t.truckId}
-                                  className={`flex flex-col items-center gap-2 rounded-lg border p-4 cursor-pointer transition-colors ${
+                                  className={`flex items-center gap-4 rounded-lg border px-4 py-3 cursor-pointer transition-colors ${
                                     isSelected
                                       ? "border-green-600 bg-green-50"
                                       : "border-navy-950/10 bg-white hover:border-navy-950/20"
@@ -384,14 +384,19 @@ return (
                                         String(t.truckId)
                                       )
                                     }
-                                    className="h-4 w-4 text-green-600"
+                                    className="h-4 w-4 shrink-0 text-green-600"
                                   />
-                                  <div className="text-center w-full">
-                                    <div className="text-sm font-semibold text-ink truncate">
-                                      {t.registration_number}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-baseline">
+                                      <div className="text-sm font-semibold text-ink truncate">
+                                        {t.registration_number}
+                                      </div>
+                                      <div className="text-xs text-ink-muted shrink-0">
+                                        {suggestion ? `${suggestion.distanceKm.toFixed(1)} km from pickup` : ""}
+                                      </div>
                                     </div>
-                                    <div className="text-xs text-ink-muted mt-1">
-                                      {Number(t.capacity_tonnes)} t cap{suggestion ? ` • ${suggestion.distanceKm.toFixed(1)} km` : ""}
+                                    <div className="text-xs text-ink-muted">
+                                      Capacity: {Number(t.capacity_tonnes)} t
                                     </div>
                                   </div>
                                 </label>
