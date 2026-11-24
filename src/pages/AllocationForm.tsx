@@ -341,7 +341,15 @@ return (
                   const suitable = suggestedTrucks
                     .map((s) => trucksById.get(String(s.truckId)))
                     .filter(Boolean)
-                    .filter((t) => canCarry(t, Number(c.weightTonnes)));
+                    .filter((t) => {
+                      const alreadyAssignedWeight =
+                        weightByTruck[String(t.truckId)] || 0;
+                      const max = maxCargo(t.capacity_tonnes);
+                      if (max == null) return false;
+                      return (
+                        alreadyAssignedWeight + Number(c.weightTonnes) <= max
+                      );
+                    });
                   const current = assignments[String(c.containerId)] || "";
 
                   return (
@@ -384,11 +392,22 @@ return (
                             );
                             const isSelected =
                               current === String(t.truckId);
+                            const alreadyAssignedWeight =
+                              weightByTruck[String(t.truckId)] || 0;
+                            const max = maxCargo(t.capacity_tonnes);
+                            const remaining = max == null
+                              ? null
+                              : Math.max(0, max - alreadyAssignedWeight);
+                            const isAlreadyUsed =
+                              alreadyAssignedWeight > 0 &&
+                              current !== String(t.truckId);
                             return (
                               <label
                                 key={t.truckId}
                                 className={`block rounded-xl border p-3 cursor-pointer transition-colors ${isSelected
                                   ? "border-green-600 bg-green-50"
+                                  : isAlreadyUsed
+                                  ? "border-navy-950/20 bg-green-5/50 hover:border-navy-950/30"
                                   : "border-navy-950/10 bg-white hover:border-navy-950/30"
                                 }`}
                               >
@@ -438,7 +457,7 @@ return (
                                       )}
                                     </div>
                                     <div className="text-xs text-ink-muted">
-                                      {Number(t.capacity_tonnes)} t capacity{suggestion && suggestion.currentLocation ? ` • ${suggestion.currentLocation}` : ""}
+                                      {Number(t.capacity_tonnes)} t capacity{remaining != null ? ` • ${remaining.toFixed(1)} t left` : ""}{isAlreadyUsed ? " • already carrying another container" : ""}
                                     </div>
                                   </div>
                                 </div>
