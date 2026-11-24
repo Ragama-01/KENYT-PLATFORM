@@ -343,7 +343,10 @@ return (
                     .filter(Boolean)
                     .filter((t) => {
                       const alreadyAssignedWeight =
-                        weightByTruck[String(t.truckId)] || 0;
+                        (weightByTruck[String(t.truckId)] || 0) -
+                        (current === String(t.truckId)
+                          ? Number(c.weightTonnes)
+                          : 0);
                       const max = maxCargo(t.capacity_tonnes);
                       if (max == null) return false;
                       return (
@@ -393,7 +396,10 @@ return (
                             const isSelected =
                               current === String(t.truckId);
                             const alreadyAssignedWeight =
-                              weightByTruck[String(t.truckId)] || 0;
+                              (weightByTruck[String(t.truckId)] || 0) -
+                              (current === String(t.truckId)
+                                ? Number(c.weightTonnes)
+                                : 0);
                             const max = maxCargo(t.capacity_tonnes);
                             const remaining = max == null
                               ? null
