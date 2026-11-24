@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { FieldGroup } from "../components/FormField";
 import { Button } from "../components/Button";
+import { API_BASE } from "../lib/api";
 
 // A transformed order coming from the App (snake_case fields + nested
 // containers list that came back from the /orders API).
@@ -18,6 +19,18 @@ interface OrderOption {
   customer_name: string;
   weight_tonnes: number;
   containers: ContainerOption[];
+}
+
+interface TruckSuggestion {
+  truckId: number;
+  registration: string;
+  capacity: number;
+  distanceKm: number;
+  canCarry: boolean;
+  currentLocation: string | null;
+  hasExistingOrder: boolean;
+  currentOrderDestination: string | null;
+  lastAllocatedAt: string | null;
 }
 
 export type AllocationSubmit =
@@ -63,17 +76,60 @@ export default function AllocationForm({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
+  // Trucks suggested by the backend for the selected order, with distance to pickup
+  const [suggestedTrucks, setSuggestedTrucks] = useState<TruckSuggestion[]>([]);
 
   const order = orders.find((o) => String(o.orderId) === selectedOrderId);
   const containers = order?.containers ?? [];
 
-  const availableTrucks = trucks.filter((t) => t.status === "available");
+  // All trucks known to the system (not filtered by status), enriched with
+  // distance to the selected order's pickup location when suggestions are loaded.
+  const trucksById = new Map(trucks.map((t) => [String(t.truckId || t.id), t]));
 
   const canCarry = (truck: any, weight: number): boolean => {
     const max = maxCargo(truck.capacity_tonnes);
     if (max == null) return false;
     return max >= weight;
   };
+
+  //-----------------------------------------------------
+  // Fetch truck suggestions (distance to pickup) when an order is chosen
+  //-----------------------------------------------------
+
+  useEffect(() => {
+    let cancelled = false;
+    const o = orders.find((x) => String(x.orderId) === selectedOrderId);
+    if (!o) {
+      setSuggestedTrucks([]);
+      setAssignments({});
+      setSingleTruckId(null);
+      return;
+    }
+
+    fetch(`${API_BASE}/allocations/suggest/${o.orderId}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("auth_token") || ""}`,
+      },
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load truck suggestions");
+        return r.json();
+      })
+      .then((data: any) => {
+        if (cancelled) return;
+        setSuggestedTrucks(data.trucks || []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.warn("Could not load truck suggestions:", err.message);
+        setSuggestedTrucks([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedOrderId, orders]);
 
   //-----------------------------------------------------
   // Auto-select a sensible default when an order is chosen
@@ -90,8 +146,8 @@ export default function AllocationForm({
     // Legacy order with no container records -> fall back to single-truck.
     if (!o.containers || o.containers.length === 0) {
       setAssignments({});
-      const fit = availableTrucks.find((t) =>
-        canCarry(t, Number(o.weight_tonnes))
+      const fit = suggestedTrucks.find((t) =>
+        canCarry(trucksById.get(String(t.truckId)) || t, Number(o.weight_tonnes))
       );
       setSingleTruckId(fit ? String(fit.truckId) : null);
       return;
@@ -101,15 +157,15 @@ export default function AllocationForm({
     // that can carry it on its own.
     const next: Record<string, string> = {};
     for (const c of o.containers) {
-      const fit = availableTrucks.find((t) =>
-        canCarry(t, Number(c.weightTonnes))
+      const fit = suggestedTrucks.find((t) =>
+        canCarry(trucksById.get(String(t.truckId)) || t, Number(c.weightTonnes))
       );
       if (fit) next[String(c.containerId)] = String(fit.truckId);
     }
     setAssignments(next);
     setSingleTruckId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrderId]);
+  }, [selectedOrderId, suggestedTrucks, trucksById]);
 // Track the truck that would carry a given container (empty string = none).
   const handleTruckChange = (containerId: number, truckId: string) => {
     const key = String(containerId);
@@ -270,9 +326,10 @@ return (
 
             <div className="space-y-4">
               {containers.map((c, i) => {
-                const suitable = availableTrucks.filter((t) =>
-                  canCarry(t, Number(c.weightTonnes))
-                );
+                const suitable = suggestedTrucks
+                  .map((s) => trucksById.get(String(s.truckId)))
+                  .filter(Boolean)
+                  .filter((t) => canCarry(t, Number(c.weightTonnes)));
                 const current = assignments[String(c.containerId)] || "";
 
                 return (
@@ -302,15 +359,20 @@ return (
                           className="block w-56 rounded-lg border border-navy-950/20 bg-white px-2 py-1.5 text-sm text-ink"
                         >
                           <option value="">Select truck...</option>
-                          {suitable.map((t) => (
-                            <option
-                              key={t.truckId}
-                              value={String(t.truckId)}
-                            >
-                              {t.registration_number} (
-                              {Number(t.capacity_tonnes)} t)
-                            </option>
-                          ))}
+                          {suitable.map((t) => {
+                            const suggestion = suggestedTrucks.find(
+                              (s) => String(s.truckId) === String(t.truckId)
+                            );
+                            return (
+                              <option
+                                key={t.truckId}
+                                value={String(t.truckId)}
+                              >
+                                {t.registration_number} (
+                                {Number(t.capacity_tonnes)} t){suggestion ? ` • ${suggestion.distanceKm.toFixed(1)} km from pickup` : ""}
+                              </option>
+                            );
+                          })}
                         </select>
                       </label>
                     </div>
@@ -363,9 +425,14 @@ return (
             </p>
 
             <div className="space-y-2">
-              {availableTrucks
+              {suggestedTrucks
+                .map((s) => trucksById.get(String(s.truckId)))
+                .filter(Boolean)
                 .filter((t) => canCarry(t, Number(order.weight_tonnes)))
                 .map((t) => {
+                  const suggestion = suggestedTrucks.find(
+                    (s) => String(s.truckId) === String(t.truckId)
+                  );
                   const isSelected = singleTruckId === String(t.truckId);
                   return (
                     <label
@@ -390,7 +457,7 @@ return (
                           {t.registration_number}
                         </div>
                         <div className="text-sm text-ink-muted">
-                          Capacity: {Number(t.capacity_tonnes)} tonnes
+                          Capacity: {Number(t.capacity_tonnes)} tonnes{suggestion ? ` • ${suggestion.distanceKm.toFixed(1)} km from pickup` : ""}
                         </div>
                       </div>
                       {isSelected && (

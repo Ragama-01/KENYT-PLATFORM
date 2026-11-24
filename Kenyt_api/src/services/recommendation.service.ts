@@ -7,6 +7,7 @@ export interface TruckCandidate {
   registration: string;
   capacity: number;
   distanceKm: number;
+  canCarry: boolean;
   currentLocation: string | null;
   hasExistingOrder: boolean;
   currentOrderDestination: string | null;
@@ -49,12 +50,9 @@ export async function recommendTruck(orderId: number): Promise<TruckRecommendati
     throw new Error("Order does not have a pickup location.");
   }
 
-  // Find available trucks together with their latest location
+  // Find all trucks together with their latest location
   // and any existing allocations/orders
   const trucks = await prisma.truck.findMany({
-    where: {
-      status: "available",
-    },
     include: {
       location: true,
       allocations: {
@@ -74,7 +72,7 @@ export async function recommendTruck(orderId: number): Promise<TruckRecommendati
   });
 
   if (trucks.length === 0) {
-    throw new Error("No available trucks.");
+    throw new Error("No trucks found.");
   }
 
   // Load all locations for reverse geocoding truck positions
@@ -83,18 +81,14 @@ export async function recommendTruck(orderId: number): Promise<TruckRecommendati
   const candidates: TruckCandidate[] = [];
 
   for (const truck of trucks) {
-    // Skip trucks without a GPS location
+    // Skip trucks without a GPS location (cannot calculate distance)
     if (!truck.location) continue;
 
-    // Skip trucks that can't carry the cargo (uses the capacity-label rule:
-    // 26 t -> carries <= 20 t, 28 t -> carries <= 28 t, above 28 t -> any cargo)
     const maxCargo = maxCargoForTruck(truck.capacity_tonnes);
-    if (
+    const canCarry =
       maxCargo == null ||
-      (maxCargo !== Infinity && Number(order.cargoWeightTonnes) > maxCargo)
-    ) {
-      continue;
-    }
+      (maxCargo !== Infinity && Number(order.cargoWeightTonnes) <= maxCargo) ||
+      maxCargo === Infinity;
 
     const distance = calculateDistanceKm(
       Number(truck.location.lat),
@@ -135,6 +129,7 @@ export async function recommendTruck(orderId: number): Promise<TruckRecommendati
       registration: truck.registration_number,
       capacity: Number(truck.capacity_tonnes),
       distanceKm: Number(distance.toFixed(2)),
+      canCarry,
       currentLocation,
       hasExistingOrder,
       currentOrderDestination,
@@ -143,7 +138,7 @@ export async function recommendTruck(orderId: number): Promise<TruckRecommendati
   }
 
   if (candidates.length === 0) {
-    throw new Error("No available truck can carry this cargo.");
+    throw new Error("No trucks with GPS location found.");
   }
 
   // Sort nearest first

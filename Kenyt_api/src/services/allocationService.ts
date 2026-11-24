@@ -25,19 +25,16 @@ export async function findBestTruck(orderId: number, truckId?: number) {
   }
 
   // ----------------------------------------------------
-  // Load available trucks together with their GPS
+  // Load trucks together with their GPS
   // ----------------------------------------------------
   const trucks = await prisma.truck.findMany({
-    where: {
-      status: "available",
-    },
     include: {
       location: true,
     },
   });
 
   if (trucks.length === 0) {
-    throw new Error("No available trucks.");
+    throw new Error("No trucks found.");
   }
 
   // ----------------------------------------------------
@@ -187,11 +184,6 @@ export async function allocateBatch(orderIds: number[], truckId: number) {
   );
 
   if (!truck) throw new Error("Truck not found");
-
-  if (truck.status !== "available") {
-
-    throw new Error("Truck " + truck.registration_number + " is not available (status: " + truck.status + ")..");
-  }
 
   const orders = await prisma.order.findMany(
     {
@@ -420,7 +412,7 @@ export async function allocateOrderTrucks(
     throw new Error("One or more selected trucks were not found.");
   }
 
-  // Accumulate assigned weight per truck and check availability + capacity
+  // Accumulate assigned weight per truck and check capacity
   const truckIndex = new Map(trucks.map((t) => [t.truckId, t]));
   const weightByTruck: Record<number, number> = {};
 
@@ -428,18 +420,7 @@ export async function allocateOrderTrucks(
     const tId = assigned.get(c.containerId)!;
     const truck = truckIndex.get(tId)!;
 
-    if (truck.status !== "available") {
-      throw new Error(
-        "Truck " +
-          truck.registration_number +
-          " is not available (status: " +
-          truck.status +
-          ")."
-      );
-    }
-
-    weightByTruck[tId] =
-      (weightByTruck[tId] || 0) + Number(c.weightTonnes);
+    weightByTruck[tId] = (weightByTruck[tId] || 0) + Number(c.weightTonnes);
   }
 
   for (const t of trucks) {
