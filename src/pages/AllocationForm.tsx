@@ -269,28 +269,23 @@ export default function AllocationForm({
   //-----------------------------------------------------
 return (
     <div>
-      <header className="mb-8">
-        <h1 className="font-display text-2xl font-semibold text-ink">
-          Allocate Trucks
-        </h1>
-
-        <p className="mt-2 text-sm text-ink-muted">
-          Pick an order. If it has more than one container you can assign
-          them to a single truck or spread them across several trucks — each
-          container is carried by the truck you choose for it.
-        </p>
-      </header>
-
-      <div className="flex flex-col gap-8">
-        <FieldGroup title="Order">
-          {orders.length === 0 && (
-            <p className="text-sm text-ink-muted">No pending orders.</p>
+      <header className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-ink">
+            Allocate trucks
+          </h1>
+          {order && (
+            <p className="text-sm text-ink-muted">
+              {order.bol_number || "N/A"} • {order.customer_name}
+            </p>
           )}
+        </div>
 
+        {orders.length > 0 && (
           <select
             value={selectedOrderId}
             onChange={(e) => setSelectedOrderId(e.target.value)}
-            className="w-full rounded-lg border border-navy-950/20 bg-white px-3 py-2 text-sm text-ink"
+            className="max-w-[300px] w-full rounded-lg border border-navy-950/20 bg-white px-3 py-2 text-sm text-ink"
           >
             <option value="">Select an order...</option>
             {orderOptions.map((opt) => (
@@ -299,216 +294,303 @@ return (
               </option>
             ))}
           </select>
+        )}
+      </header>
 
-          {order && containers.length > 0 && (
-            <div className="mt-3 rounded-lg border p-4 bg-white">
-              <div className="text-sm text-ink-muted">
-                <strong>Containers:</strong> {containers.length} •{" "}
-                <strong>Total:</strong> {Number(order.weight_tonnes)} t
+      {orders.length === 0 && (
+        <p className="text-sm text-ink-muted mb-6">
+          No pending orders.
+        </p>
+      )}
+
+      {!order && orders.length > 0 && (
+        <p className="text-sm text-ink-muted mb-6">
+          Select an order to begin allocating trucks.
+        </p>
+      )}
+
+      {order && (
+        <>
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="rounded-xl border p-4 bg-white">
+              <div className="text-xs text-ink-muted">Containers</div>
+              <div className="text-lg font-semibold text-ink">
+                {containers.length}
               </div>
             </div>
-          )}
-        </FieldGroup>
+            <div className="rounded-xl border p-4 bg-white">
+              <div className="text-xs text-ink-muted">Total weight</div>
+              <div className="text-lg font-semibold text-ink">
+                {Number(order.weight_tonnes)} t
+              </div>
+            </div>
+            <div className="rounded-xl border p-4 bg-white">
+              <div className="text-xs text-ink-muted">Assigned</div>
+              <div className="text-lg font-semibold text-ink">
+                {containers.filter((c) =>
+                  !!assignments[String(c.containerId)]
+                ).length} / {containers.length}
+              </div>
+            </div>
+          </div>
 
-        {!order && (
-          <p className="text-sm text-ink-muted">
-            Select an order to begin allocating trucks.
-          </p>
-        )}
+          {containers.length > 0 && (
+            <>
+              <div className="space-y-3">
+                {containers.map((c, i) => {
+                  const suitable = suggestedTrucks
+                    .map((s) => trucksById.get(String(s.truckId)))
+                    .filter(Boolean)
+                    .filter((t) => canCarry(t, Number(c.weightTonnes)));
+                  const current = assignments[String(c.containerId)] || "";
 
-        {order && containers.length > 0 && (
-          <FieldGroup title="Assign containers to trucks">
-            <p className="text-sm text-ink-muted">
-              Each container can go to a different truck, or all to the same
-              truck. The combined weight on any truck must stay within its
-              capacity.
-            </p>
-
-            <div className="space-y-8">
-              {containers.map((c, i) => {
-                const suitable = suggestedTrucks
-                  .map((s) => trucksById.get(String(s.truckId)))
-                  .filter(Boolean)
-                  .filter((t) => canCarry(t, Number(c.weightTonnes)));
-                const current = assignments[String(c.containerId)] || "";
-
-                return (
-                  <div
-                    key={c.containerId}
-                    className="rounded-lg border p-6 bg-white"
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-                      <div className="lg:w-1/3">
-                        <div className="font-semibold text-ink text-sm">
-                          Container #{i + 1}: {c.containerNumber || "—"}
-                        </div>
-                        <div className="mt-2 text-sm text-ink-muted">
-                          {c.containerType || "Any type"} •{" "}
-                          {c.cargoType || "n/a"} •{" "}
+                  return (
+                    <div
+                      key={c.containerId}
+                      className="rounded-xl border p-4 bg-white mb-3"
+                    >
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="font-semibold text-ink text-sm">
+                          Container {c.containerNumber || "—"}
+                        </span>
+                        <span
+                          className="text-xs rounded-full border border-navy-950/10 bg-white px-2 py-0.5 text-ink-muted"
+                        >
+                          {c.containerType || "Any type"}
+                        </span>
+                        <span
+                          className="text-xs rounded-full border border-navy-950/10 bg-white px-2 py-0.5 text-ink-muted"
+                        >
+                          {c.cargoType || "n/a"}
+                        </span>
+                        <span
+                          className="ml-auto text-xs rounded-full border border-navy-950/10 bg-white px-2 py-0.5 text-ink-muted"
+                        >
                           {Number(c.weightTonnes)} t
-                        </div>
+                        </span>
                       </div>
 
-                      <div className="flex-1">
-                        <div className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-3">
-                          Select truck
-                        </div>
-                        <div className="space-y-2">
-                          {suitable.length === 0 ? (
-                            <p className="text-sm text-red-600">
-                              No truck can carry this container
-                            </p>
-                          ) : (
-                            suitable.map((t) => {
-                              const suggestion = suggestedTrucks.find(
-                                (s) => String(s.truckId) === String(t.truckId)
-                              );
-                              const isSelected =
-                                current === String(t.truckId);
-                              return (
-                                <label
-                                  key={t.truckId}
-                                  className={`flex items-center gap-4 rounded-lg border px-4 py-3 cursor-pointer transition-colors ${
-                                    isSelected
-                                      ? "border-green-600 bg-green-50"
-                                      : "border-navy-950/10 bg-white hover:border-navy-950/20"
+                      <div
+                        className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+                      >
+                        {suitable.length === 0 ? (
+                          <p className="col-span-2 text-sm text-red-600">
+                            No truck can carry this container
+                          </p>
+                        ) : (
+                          suitable.map((t) => {
+                            const suggestion = suggestedTrucks.find(
+                              (s) => String(s.truckId) === String(t.truckId)
+                            );
+                            const isSelected =
+                              current === String(t.truckId);
+                            return (
+                              <label
+                                key={t.truckId}
+                                className={`block rounded-xl border p-3 cursor-pointer transition-colors ${isSelected
+                                  ? "border-green-600 bg-green-50"
+                                  : "border-navy-950/10 bg-white hover:border-navy-950/30"
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`container_${c.containerId}`}
+                                  checked={isSelected}
+                                  onChange={() =>
+                                    handleTruckChange(
+                                      c.containerId,
+                                      String(t.truckId)
+                                    )
+                                  }
+                                  className="sr-only"
+                                />
+                                <div className="flex items-center gap-2">
+                                  <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${isSelected
+                                    ? "border-green-600 bg-green-50"
+                                    : "border-navy-950/10 bg-white"
                                   }`}
-                                >
-                                  <input
-                                    type="radio"
-                                    name={`container_${c.containerId}`}
-                                    checked={isSelected}
-                                    onChange={() =>
-                                      handleTruckChange(
-                                        c.containerId,
-                                        String(t.truckId)
-                                      )
-                                    }
-                                    className="h-4 w-4 shrink-0 text-green-600"
-                                  />
+                                  >
+                                    {isSelected && (
+                                      <svg
+                                        className="w-2.5 h-2.5 text-white"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={3}
+                                          d="M5 13l4 4L19 7"
+                                        />
+                                      </svg>
+                                    )}
+                                  </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-baseline">
                                       <div className="text-sm font-semibold text-ink truncate">
                                         {t.registration_number}
                                       </div>
-                                      <div className="text-xs text-ink-muted shrink-0">
-                                        {suggestion ? `${suggestion.distanceKm.toFixed(1)} km from pickup` : ""}
-                                      </div>
+                                      {suggestion && (
+                                        <div className="text-xs text-ink-muted shrink-0">
+                                          {suggestion.distanceKm.toFixed(1)} km
+                                        </div>
+                                      )}
                                     </div>
                                     <div className="text-xs text-ink-muted">
-                                      Capacity: {Number(t.capacity_tonnes)} t
+                                      {Number(t.capacity_tonnes)} t capacity{suggestion && suggestion.currentLocation ? ` • ${suggestion.currentLocation}` : ""}
                                     </div>
                                   </div>
-                                </label>
-                              );
-                            })
-                          )}
-                        </div>
+                                </div>
+                              </label>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
 
-            {selectedTruckIds.size > 0 && (
-              <div className="mt-4 rounded-lg border p-4 bg-white">
-                <div className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">
-                  Load summary
+              {selectedTruckIds.size > 0 && (
+                <div className="rounded-xl border p-4 bg-white mt-4">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-3">
+                    Load per truck
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                    {trucks
+                      .filter(
+                        (t) => (weightByTruck[String(t.truckId)] || 0) > 0
+                      )
+                      .map((t) => {
+                        const load =
+                          weightByTruck[String(t.truckId)] || 0;
+                        const max = maxCargo(t.capacity_tonnes);
+                        const fits =
+                          max == null ||
+                          max === Infinity ||
+                          load <= max;
+                        const limit =
+                          max === Infinity
+                            ? Number(t.capacity_tonnes)
+                            : max ?? Number(t.capacity_tonnes);
+                        const pct =
+                          limit > 0
+                            ? Math.min(100, (load / limit) * 100)
+                            : 0;
+                        return (
+                          <div
+                            key={t.truckId}
+                            className="min-w-0"
+                          >
+                            <div className="flex justify-between items-baseline mb-1">
+                              <div className="text-sm font-semibold text-ink truncate">
+                                {t.registration_number}
+                              </div>
+                              <div className={`text-xs font-semibold ${fits ? "text-ink" : "text-red-600"}`}>
+                                {load.toFixed(2)} / {limit} t{
+                                  max !== Infinity && !fits && " · over"
+                                }
+                              </div>
+                            </div>
+                            <div className="w-full h-[6px] rounded-full bg-gray-100 overflow-hidden">
+                              <div
+                                className={`h-full ${fits ? "bg-green-600" : "bg-red-600"}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
-                {trucks
-                  .filter(
-                    (t) => (weightByTruck[String(t.truckId)] || 0) > 0
-                  )
+              )}
+            </>
+          )}
+
+          {containers.length === 0 && (
+            <FieldGroup title="Assign Truck">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {suggestedTrucks
+                  .map((s) => trucksById.get(String(s.truckId)))
+                  .filter(Boolean)
+                  .filter((t) => canCarry(t, Number(order.weight_tonnes)))
                   .map((t) => {
-                    const load = weightByTruck[String(t.truckId)] || 0;
-                    const max = maxCargo(t.capacity_tonnes);
-                    const fits =
-                      max == null ||
-                      max === Infinity ||
-                      load <= max;
+                    const suggestion = suggestedTrucks.find(
+                      (s) => String(s.truckId) === String(t.truckId)
+                    );
+                    const isSelected = singleTruckId === String(t.truckId);
                     return (
-                      <div
+                      <label
                         key={t.truckId}
-                        className={`mt-1 text-sm ${
-                          fits ? "text-ink-muted" : "text-red-600"
+                        className={`block rounded-xl border p-3 cursor-pointer transition-colors ${isSelected
+                          ? "border-green-600 bg-green-50"
+                          : "border-navy-950/10 bg-white hover:border-navy-950/30"
                         }`}
                       >
-                        {t.registration_number}:{" "}
-                        <strong>{load.toFixed(2)} t</strong>
-                        {max != null && max !== Infinity && (
-                          <> / {max} t max</>
-                        )}
-                        {!fits && " — over capacity!"}
-                      </div>
+                        <input
+                          type="radio"
+                          name="single_truck"
+                          checked={isSelected}
+                          onChange={() =>
+                            setSingleTruckId(String(t.truckId))
+                          }
+                          className="sr-only"
+                        />
+                        <div className="flex items-center gap-2">
+                          <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${isSelected
+                            ? "border-green-600 bg-green-50"
+                            : "border-navy-950/10 bg-white"
+                          }`}
+                          >
+                            {isSelected && (
+                              <svg
+                                className="w-2.5 h-2.5 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={3}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-baseline">
+                              <div className="text-sm font-semibold text-ink truncate">
+                                {t.registration_number}
+                              </div>
+                              {suggestion && (
+                                <div className="text-xs text-ink-muted shrink-0">
+                                  {suggestion.distanceKm.toFixed(1)} km
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-xs text-ink-muted">
+                              {Number(t.capacity_tonnes)} t capacity{suggestion && suggestion.currentLocation ? ` • ${suggestion.currentLocation}` : ""}
+                            </div>
+                          </div>
+                        </div>
+                      </label>
                     );
                   })}
               </div>
-            )}
-          </FieldGroup>
-        )}
-{order && containers.length === 0 && (
-          <FieldGroup title="Assign Truck">
-            <p className="text-sm text-ink-muted">
-              This order has no container records, so it is assigned to a
-              single truck as one load.
-            </p>
+            </FieldGroup>
+          )}
+        </>
+      )}
 
-            <div className="space-y-2">
-              {suggestedTrucks
-                .map((s) => trucksById.get(String(s.truckId)))
-                .filter(Boolean)
-                .filter((t) => canCarry(t, Number(order.weight_tonnes)))
-                .map((t) => {
-                  const suggestion = suggestedTrucks.find(
-                    (s) => String(s.truckId) === String(t.truckId)
-                  );
-                  const isSelected = singleTruckId === String(t.truckId);
-                  return (
-                    <label
-                      key={t.truckId}
-                      className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                        isSelected
-                          ? "border-green-600 bg-green-50"
-                          : "border-navy-950/10 bg-white hover:border-navy-950/30"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="single_truck"
-                        checked={isSelected}
-                        onChange={() =>
-                          setSingleTruckId(String(t.truckId))
-                        }
-                        className="h-4 w-4 text-green-600"
-                      />
-                      <div className="flex-1">
-                        <div className="font-semibold text-ink">
-                          {t.registration_number}
-                        </div>
-                        <div className="text-sm text-ink-muted">
-                          Capacity: {Number(t.capacity_tonnes)} tonnes{suggestion ? ` • ${suggestion.distanceKm.toFixed(1)} km from pickup` : ""}
-                        </div>
-                      </div>
-                      {isSelected && (
-                        <span className="text-green-700 font-semibold text-sm">
-                          ✔ Selected
-                        </span>
-                      )}
-                    </label>
-                  );
-                })}
-            </div>
-          </FieldGroup>
-        )}
-
+      <div className="flex items-center justify-between gap-3 border-t border-navy-950/10 pt-6 mt-6 flex-wrap">
         {error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
         )}
-
-        <div className="flex items-center gap-3 border-t border-navy-950/10 pt-6">
+        <div className="flex items-center gap-3">
           <Button
             type="button"
             disabled={!order || isSubmitting}
