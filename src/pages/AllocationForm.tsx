@@ -324,7 +324,7 @@ return (
               capacity.
             </p>
 
-            <div className="space-y-6">
+            <div className="space-y-8">
               {containers.map((c, i) => {
                 const suitable = suggestedTrucks
                   .map((s) => trucksById.get(String(s.truckId)))
@@ -335,14 +335,14 @@ return (
                 return (
                   <div
                     key={c.containerId}
-                    className="rounded-lg border p-5 bg-white"
+                    className="rounded-lg border p-6 bg-white"
                   >
-                    <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+                    <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                       <div className="lg:w-1/3">
                         <div className="font-semibold text-ink text-sm">
                           Container #{i + 1}: {c.containerNumber || "—"}
                         </div>
-                        <div className="mt-1 text-sm text-ink-muted">
+                        <div className="mt-2 text-sm text-ink-muted">
                           {c.containerType || "Any type"} •{" "}
                           {c.cargoType || "n/a"} •{" "}
                           {Number(c.weightTonnes)} t
@@ -350,10 +350,10 @@ return (
                       </div>
 
                       <div className="flex-1">
-                        <div className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">
+                        <div className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-3">
                           Select truck
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-5">
                           {suitable.length === 0 ? (
                             <p className="text-sm text-red-600">
                               No truck can carry this container
@@ -368,10 +368,10 @@ return (
                               return (
                                 <label
                                   key={t.truckId}
-                                  className={`flex items-center gap-2 rounded-lg border p-3 cursor-pointer transition-colors ${
+                                  className={`flex flex-col items-center gap-2 rounded-lg border p-4 cursor-pointer transition-colors ${
                                     isSelected
                                       ? "border-green-600 bg-green-50"
-                                      : "border-navy-950/10 bg-white hover:border-navy-950/30"
+                                      : "border-navy-950/10 bg-white hover:border-navy-950/20"
                                   }`}
                                 >
                                   <input
@@ -386,11 +386,11 @@ return (
                                     }
                                     className="h-4 w-4 text-green-600"
                                   />
-                                  <div className="flex-1 min-w-0">
+                                  <div className="text-center w-full">
                                     <div className="text-sm font-semibold text-ink truncate">
                                       {t.registration_number}
                                     </div>
-                                    <div className="text-xs text-ink-muted">
+                                    <div className="text-xs text-ink-muted mt-1">
                                       {Number(t.capacity_tonnes)} t cap{suggestion ? ` • ${suggestion.distanceKm.toFixed(1)} km` : ""}
                                     </div>
                                   </div>
