@@ -338,6 +338,7 @@ return (
             <>
               <div className="space-y-3">
                 {containers.map((c, i) => {
+                  const current = assignments[String(c.containerId)] || "";
                   const suitable = suggestedTrucks
                     .map((s) => trucksById.get(String(s.truckId)))
                     .filter(Boolean)
@@ -353,7 +354,6 @@ return (
                         alreadyAssignedWeight + Number(c.weightTonnes) <= max
                       );
                     });
-                  const current = assignments[String(c.containerId)] || "";
 
                   return (
                     <div
