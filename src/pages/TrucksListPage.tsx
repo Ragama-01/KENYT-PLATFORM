@@ -5,8 +5,21 @@ import type { TruckFormValues } from "../types/models";
 
 type TruckRecord = TruckFormValues & { id: number | string };
 
+function authHeaders(): HeadersInit {
+  const token = localStorage.getItem("auth_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// The backend returns image_url as a server-relative path ("/uploads/x.jpg").
+// Resolve it against the API origin; leave absolute URLs untouched.
+function resolveImageUrl(url?: string | null): string | null {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${API_BASE}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
 async function fetchTrucks(): Promise<TruckRecord[]> {
-  const res = await fetch(`${API_BASE}/trucks`);
+  const res = await fetch(`${API_BASE}/trucks`, { headers: authHeaders() });
 
   if (!res.ok) {
     throw new Error(await res.text());
@@ -14,13 +27,30 @@ async function fetchTrucks(): Promise<TruckRecord[]> {
 
   const data = await res.json();
 
-  console.log("API RESPONSE:", data);
+  // The API returns either a bare array or { data, meta } (paginated).
+  const list: any[] = Array.isArray(data) ? data : data.data ?? [];
 
-  return data;
+  // New Phase-1 fields come back camelCase from Prisma; map to snake_case.
+  return list.map((truck) => ({
+    ...truck,
+    trailer_registration: truck.trailerRegistration ?? truck.trailer_registration,
+    tgl_2027: truck.tgl2027 ?? truck.tgl_2027,
+    logbook_truck: truck.logbookTruck ?? truck.logbook_truck,
+    logbook_trailer: truck.logbookTrailer ?? truck.logbook_trailer,
+    policy_number: truck.policyNumber ?? truck.policy_number,
+    serial_number: truck.serialNumber ?? truck.serial_number,
+    inspection_sticker_no: truck.inspectionStickerNo ?? truck.inspection_sticker_no,
+    driver_id: truck.driverId ?? truck.driver_id,
+    driver_name: truck.driverName ?? truck.driver_name,
+    image_url: truck.imageUrl ?? truck.image_url,
+  }));
 }
 
 async function deleteTruck(id: TruckRecord["id"]): Promise<void> {
-  const res = await fetch(`${API_BASE}/trucks/${id}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/trucks/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message ?? "Failed to delete truck");
@@ -82,9 +112,11 @@ interface TrucksListPageProps {
   onAddTruck: () => void;
   onViewTruck: (truck: TruckRecord) => void;
   onEditTruck: (truck: TruckRecord) => void;
+  // Whether the current user may add/edit/delete trucks (admin/super_admin).
+  canWrite?: boolean;
 }
 
-export default function TrucksListPage({ onAddTruck, onViewTruck, onEditTruck }: TrucksListPageProps) {
+export default function TrucksListPage({ onAddTruck, onViewTruck, onEditTruck, canWrite = true }: TrucksListPageProps) {
   const [trucks, setTrucks] = useState<TruckRecord[] | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<TruckRecord["id"] | null>(null);
   const [deletingId, setDeletingId] = useState<TruckRecord["id"] | null>(null);
@@ -93,7 +125,6 @@ export default function TrucksListPage({ onAddTruck, onViewTruck, onEditTruck }:
 useEffect(() => {
   fetchTrucks()
     .then((data) => {
-      console.log("First truck", data[0]);
       setTrucks(data);
     })
     .catch((err) => {
@@ -133,7 +164,7 @@ useEffect(() => {
           <h1 className="font-display text-2xl font-semibold text-ink">Trucks</h1>
           <p className="mt-1 text-sm text-ink-muted">Fleet vehicles and their compliance status.</p>
         </div>
-        <Button onClick={onAddTruck}>Add truck</Button>
+        <Button onClick={onAddTruck} disabled={!canWrite}>Add truck</Button>
       </header>
 
       {error && (
@@ -149,7 +180,9 @@ useEffect(() => {
           <table className="w-full text-left text-sm">
             <thead className="bg-navy-950/5 text-xs uppercase tracking-wide text-ink-muted">
               <tr>
+                <th className="px-4 py-3 font-medium">Image</th>
                 <th className="px-4 py-3 font-medium">Registration</th>
+                <th className="px-4 py-3 font-medium">Driver</th>
                 <th className="px-4 py-3 font-medium">Logbook No.</th>
                 <th className="px-4 py-3 font-medium">TGL Unit</th>
                 <th className="px-4 py-3 font-medium">Insurance Policy</th>
@@ -168,7 +201,19 @@ useEffect(() => {
 
                 return (
                   <tr key={truck.id} className="hover:bg-navy-950/[0.02]">
+                    <td className="px-4 py-3">
+                      {resolveImageUrl(truck.image_url) ? (
+                        <img
+                          src={resolveImageUrl(truck.image_url)!}
+                          alt={truck.registration_number}
+                          className="h-10 w-14 rounded border border-navy-950/10 object-cover"
+                        />
+                      ) : (
+                        <span className="text-ink-muted">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 font-mono text-ink">{truck.registration_number}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.driver_name || "—"}</td>
                     <td className="px-4 py-3 text-ink-muted">{truck.logbook_number || "—"}</td>
                     <td className="px-4 py-3 text-ink-muted">{truck.tgl_number || "—"}</td>
                     <td className="px-4 py-3 text-ink-muted">{truck.truck_insurance_ref || "—"}</td>
@@ -191,31 +236,35 @@ useEffect(() => {
                         >
                           View
                         </button>
-                        <button
-                          type="button"
-                          className="text-sm font-medium text-navy-700 hover:underline"
-                          onClick={() => onEditTruck(truck)}
-                        >
-                          Edit
-                        </button>
-                        {isConfirming ? (
-                          <button
-                            type="button"
-                            disabled={isDeleting}
-                            className="text-sm font-medium text-red-700 hover:underline disabled:opacity-50"
-                            onClick={() => handleDelete(truck.id)}
-                          >
-                            {isDeleting ? "Deleting…" : "Confirm delete?"}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="text-sm font-medium text-red-600 hover:underline"
-                            onClick={() => setConfirmingDeleteId(truck.id)}
-                            onBlur={() => setConfirmingDeleteId(null)}
-                          >
-                            Delete
-                          </button>
+                        {canWrite && (
+                          <>
+                            <button
+                              type="button"
+                              className="text-sm font-medium text-navy-700 hover:underline"
+                              onClick={() => onEditTruck(truck)}
+                            >
+                              Edit
+                            </button>
+                            {isConfirming ? (
+                              <button
+                                type="button"
+                                disabled={isDeleting}
+                                className="text-sm font-medium text-red-700 hover:underline disabled:opacity-50"
+                                onClick={() => handleDelete(truck.id)}
+                              >
+                                {isDeleting ? "Deleting…" : "Confirm delete?"}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="text-sm font-medium text-red-600 hover:underline"
+                                onClick={() => setConfirmingDeleteId(truck.id)}
+                                onBlur={() => setConfirmingDeleteId(null)}
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </td>

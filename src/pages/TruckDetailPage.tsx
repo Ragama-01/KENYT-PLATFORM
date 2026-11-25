@@ -1,4 +1,5 @@
 import { Button } from "../components/Button";
+import { API_BASE } from "../lib/api";
 import type {
   TruckFormValues,
   TruckInsuranceHistory,
@@ -16,6 +17,14 @@ type TruckRecord = TruckFormValues & {
   trailerInsuranceHistory?: TrailerInsuranceHistory[];
   trailerCOMESAHistory?: TrailerCOMESAHistory[];
 };
+
+// The backend returns image_url as a server-relative path ("/uploads/x.jpg").
+// Resolve it against the API origin; leave absolute URLs untouched.
+function resolveImageUrl(url?: string | null): string | null {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${API_BASE}${url.startsWith("/") ? "" : "/"}${url}`;
+}
 
 function Field({ label, value }: { label: string; value?: string | number | null }) {
   return (
@@ -54,6 +63,14 @@ export default function TruckDetailPage({ truck, onBack, onEdit }: TruckDetailPa
       </header>
 
       <div className="flex flex-col gap-8">
+        {resolveImageUrl(truck.image_url) && (
+          <img
+            src={resolveImageUrl(truck.image_url)!}
+            alt={truck.registration_number}
+            className="h-56 w-auto rounded-xl border border-navy-950/10 object-cover"
+          />
+        )}
+
         <section>
           <h2 className="mb-3 text-sm font-semibold text-ink">Truck</h2>
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -65,6 +82,21 @@ export default function TruckDetailPage({ truck, onBack, onEdit }: TruckDetailPa
             <Field label="TGL number" value={truck.tgl_number} />
             <Field label="TGL year" value={truck.tgl_year} />
             <Field label="Factors to note" value={truck.factors_to_note} />
+          </dl>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-ink">Truck details</h2>
+          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <Field label="Trailer registration" value={truck.trailer_registration} />
+            <Field label="TGL 2027" value={truck.tgl_2027} />
+            <Field label="Logbook (truck)" value={truck.logbook_truck} />
+            <Field label="Logbook (trailer)" value={truck.logbook_trailer} />
+            <Field label="Policy number" value={truck.policy_number} />
+            <Field label="Serial number" value={truck.serial_number} />
+            <Field label="Inspection sticker no." value={truck.inspection_sticker_no} />
+            <Field label="Driver name" value={truck.driver_name} />
+            <Field label="Driver ID" value={truck.driver_id} />
           </dl>
         </section>
 

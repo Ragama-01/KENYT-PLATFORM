@@ -82,6 +82,18 @@ export interface Truck {
   // Notes
   factors_to_note?: string;
 
+  // New truck details (Phase 1)
+  trailer_registration?: string;
+  tgl_2027?: string;
+  logbook_truck?: string;
+  logbook_trailer?: string;
+  policy_number?: string;
+  serial_number?: string;
+  inspection_sticker_no?: string;
+  driver_id?: number | null;
+  driver_name?: string;
+  image_url?: string | null;
+
   status: TruckStatus;
 
   trailer?: Trailer | null;
@@ -221,6 +233,18 @@ export interface TruckFormValues {
 
   // Notes
   factors_to_note?: string;
+
+  // New truck details (Phase 1)
+  trailer_registration?: string;
+  tgl_2027?: string;
+  logbook_truck?: string;
+  logbook_trailer?: string;
+  policy_number?: string;
+  serial_number?: string;
+  inspection_sticker_no?: string;
+  driver_id?: number | null;
+  driver_name?: string;
+  image_url?: string | null;
 
   trailer?: TrailerFormValues;
 }

@@ -101,7 +101,7 @@ export default function AllocationForm({
 
   useEffect(() => {
     let cancelled = false;
-    const o = orders.find((x) => String(x.orderId) === selectedOrderId);
+    const o = order;
     if (!o) {
       setSuggestedTrucks([]);
       setAssignments({});
@@ -132,14 +132,15 @@ export default function AllocationForm({
     return () => {
       cancelled = true;
     };
-  }, [selectedOrderId, orders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOrderId, order?.orderId]);
 
   //-----------------------------------------------------
   // Auto-select a sensible default when an order is chosen
   //-----------------------------------------------------
 
   useEffect(() => {
-    const o = orders.find((x) => String(x.orderId) === selectedOrderId);
+    const o = order;
     if (!o) {
       setAssignments({});
       setSingleTruckId(null);
@@ -165,14 +166,12 @@ export default function AllocationForm({
       );
       if (fit) next[String(c.containerId)] = String(fit.truckId);
     }
-    console.log("AUTO-SELECT RAN", selectedOrderId, JSON.stringify(next));
     setAssignments(next);
     setSingleTruckId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrderId, suggestedTrucks]);
 // Track the truck that would carry a given container (empty string = none).
   const handleTruckChange = (containerId: number, truckId: string) => {
-    console.log("CLICK", containerId, truckId);
     const key = String(containerId);
     const next = { ...assignments };
     next[key] = truckId;

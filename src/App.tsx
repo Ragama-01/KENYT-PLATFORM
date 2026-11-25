@@ -265,13 +265,24 @@ export default function App() {
 
     const data = await res.json();
 
-    // Transform API response to ensure consistent field names
+    // Transform API response to ensure consistent field names.
+    // New Phase-1 fields come back camelCase from Prisma; map to snake_case.
     const transformed = data.map((truck: any) => ({
       ...truck,
       truckId: truck.truckId || truck.id,
       registration_number: truck.registration_number,
       capacity_tonnes: truck.capacity_tonnes,
       status: truck.status,
+      trailer_registration: truck.trailerRegistration ?? truck.trailer_registration,
+      tgl_2027: truck.tgl2027 ?? truck.tgl_2027,
+      logbook_truck: truck.logbookTruck ?? truck.logbook_truck,
+      logbook_trailer: truck.logbookTrailer ?? truck.logbook_trailer,
+      policy_number: truck.policyNumber ?? truck.policy_number,
+      serial_number: truck.serialNumber ?? truck.serial_number,
+      inspection_sticker_no: truck.inspectionStickerNo ?? truck.inspection_sticker_no,
+      driver_id: truck.driverId ?? truck.driver_id,
+      driver_name: truck.driverName ?? truck.driver_name,
+      image_url: truck.imageUrl ?? truck.image_url,
     }));
 
     setTrucks(transformed);
@@ -339,6 +350,8 @@ export default function App() {
   }
 
   const isSuperAdmin = currentUser?.role === "super_admin";
+  const canWriteTrucks =
+    currentUser?.role === "admin" || currentUser?.role === "super_admin";
 
   async function handleSaveUser(values: {
     email: string;
@@ -462,6 +475,27 @@ export default function App() {
     setTruckView({
       mode: "list",
     });
+  };
+
+  const handleTruckImageUpload = async (file: File) => {
+    const id = truckView.mode === "form" ? truckView.truck?.id : undefined;
+    if (!id) throw new Error("Save the truck before uploading an image");
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const res = await fetch(`${API_BASE}/trucks/${id}/image`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message ?? "Image upload failed");
+    }
+
+    await loadTrucks();
   };
 
   //---------------------------------------------------------
@@ -720,6 +754,7 @@ export default function App() {
       <TruckForm
         truck={truckView.truck}
         onSubmit={handleSaveTruck}
+        onImageUpload={canWriteTrucks ? handleTruckImageUpload : undefined}
         onViewAll={() =>
           setTruckView({
             mode: "list",
@@ -730,6 +765,7 @@ export default function App() {
 
     {section === "trucks" && truckView.mode === "list" && (
       <TrucksListPage
+        canWrite={canWriteTrucks}
         onAddTruck={() =>
           setTruckView({
             mode: "form",

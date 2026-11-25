@@ -69,6 +69,18 @@ model Truck {
 
   controlTechUnitId           Int?        @unique @map("control_tech_unit_id")
 
+  // Truck details extension
+  trailerRegistration    String?   @map("trailer_registration")
+  tgl2027                String?   @map("tgl_2027")
+  logbookTruck           String?   @map("logbook_truck")
+  logbookTrailer         String?   @map("logbook_trailer")
+  policyNumber           String?   @map("policy_number")
+  serialNumber           String?   @map("serial_number")
+  inspectionStickerNo    String?   @map("inspection_sticker_no")
+  driverId               Int?      @map("driver_id")
+  driverName             String?   @map("driver_name")
+  imageUrl               String?   @map("image_url")
+
   compliance                  TruckCompliance[]
   drivers                     Driver[]
   allocations                 Allocation[]

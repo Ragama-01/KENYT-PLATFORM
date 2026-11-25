@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { TextField, TextAreaField, FieldGroup } from "../components/FormField";
 import { Button } from "../components/Button";
+import { API_BASE } from "../lib/api";
 import type { TruckFormValues } from "../types/models";
 
 const currentYear = new Date().getFullYear();
@@ -66,7 +67,22 @@ const schema = z
     trailer: z
       .object({
         registration_number: z.string().optional(),
-        logbook_number: z.string().optional(),
+    logbook_number: z.string().optional(),
+
+    // New truck details (Phase 1)
+    trailer_registration: z.string().optional(),
+    tgl_2027: z.string().optional(),
+    logbook_truck: z.string().optional(),
+    logbook_trailer: z.string().optional(),
+    policy_number: z.string().optional(),
+    serial_number: z.string().optional(),
+    inspection_sticker_no: z.string().optional(),
+    driver_id: z.preprocess(
+      (v) => (v === "" || v == null ? undefined : Number(v)),
+      z.number().int().positive().optional()
+    ),
+    driver_name: z.string().optional(),
+    image_url: z.string().optional(),
 
         insurance_issued: z.string().optional(),
         insurance_expiry: z.string().optional(),
@@ -132,9 +148,12 @@ interface TruckFormProps {
   truck?: TruckRecord;
   // Called when the "View all trucks" button is clicked. Omit to hide the button.
   onViewAll?: () => void;
+  // Uploads a replacement image for an existing truck. Omit to hide the
+  // image uploader (e.g. for read-only users or before the truck is saved).
+  onImageUpload?: (file: File) => Promise<void>;
 }
 
-export default function TruckForm({ onSubmit, truck, onViewAll }: TruckFormProps) {
+export default function TruckForm({ onSubmit, truck, onViewAll, onImageUpload }: TruckFormProps) {
   const isEditMode = Boolean(truck);
 
   const {
@@ -152,6 +171,50 @@ export default function TruckForm({ onSubmit, truck, onViewAll }: TruckFormProps
   useEffect(() => {
     reset(truck ?? {});
   }, [truck, reset]);
+
+  // --- Image upload (edit mode only: the backend needs a truck id) ---
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [imageUploaded, setImageUploaded] = useState(false);
+
+  const currentImageUrl = (() => {
+    const url = truck?.image_url;
+    if (!url) return null;
+    if (/^https?:\/\//i.test(url)) return url;
+    return `${API_BASE}${url.startsWith("/") ? "" : "/"}${url}`;
+  })();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
+    setImageError(null);
+    setImageUploaded(false);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview(null);
+    }
+  };
+
+  const handleImageUpload = async () => {
+    if (!imageFile || !onImageUpload) return;
+    setUploadingImage(true);
+    setImageError(null);
+    try {
+      await onImageUpload(imageFile);
+      setImageUploaded(true);
+      setImageFile(null);
+      setImagePreview(null);
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const submit = async (values: TruckFormValues) => {
     await onSubmit(isEditMode ? { ...values, id: truck!.id } : values);
@@ -227,6 +290,118 @@ export default function TruckForm({ onSubmit, truck, onViewAll }: TruckFormProps
     />
 
   </FieldGroup>
+
+        <FieldGroup title="Truck details">
+          <TextField
+            id="trailer_registration"
+            label="Trailer registration"
+            mono
+            placeholder="e.g. ZE 4021"
+            error={errors.trailer_registration?.message}
+            {...register("trailer_registration")}
+          />
+          <TextField
+            id="tgl_2027"
+            label="TGL 2027"
+            mono
+            placeholder="e.g. TGL-2027-001"
+            error={errors.tgl_2027?.message}
+            {...register("tgl_2027")}
+          />
+          <TextField
+            id="logbook_truck"
+            label="Logbook (truck)"
+            placeholder="e.g. LGB-12345"
+            error={errors.logbook_truck?.message}
+            {...register("logbook_truck")}
+          />
+          <TextField
+            id="logbook_trailer"
+            label="Logbook (trailer)"
+            placeholder="e.g. LGB-67890"
+            error={errors.logbook_trailer?.message}
+            {...register("logbook_trailer")}
+          />
+          <TextField
+            id="policy_number"
+            label="Policy number"
+            mono
+            error={errors.policy_number?.message}
+            {...register("policy_number")}
+          />
+          <TextField
+            id="serial_number"
+            label="Serial number"
+            mono
+            error={errors.serial_number?.message}
+            {...register("serial_number")}
+          />
+          <TextField
+            id="inspection_sticker_no"
+            label="Inspection sticker no."
+            mono
+            error={errors.inspection_sticker_no?.message}
+            {...register("inspection_sticker_no")}
+          />
+          <TextField
+            id="driver_name"
+            label="Driver name"
+            placeholder="e.g. John Kamau"
+            error={errors.driver_name?.message}
+            {...register("driver_name")}
+          />
+          <TextField
+            id="driver_id"
+            label="Driver ID"
+            type="number"
+            placeholder="e.g. 12"
+            hint="Optional reference to a registered driver"
+            error={errors.driver_id?.message}
+            {...register("driver_id")}
+          />
+        </FieldGroup>
+
+        {onImageUpload && (
+          <FieldGroup title="Truck image" columns={1}>
+            <div className="flex flex-col gap-3">
+              {(imagePreview || currentImageUrl) && (
+                <img
+                  src={imagePreview ?? currentImageUrl ?? ""}
+                  alt="Truck preview"
+                  className="h-40 w-auto rounded-lg border border-navy-950/10 object-cover"
+                />
+              )}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/jpg"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-navy-700 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-navy-800"
+              />
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  onClick={handleImageUpload}
+                  disabled={!imageFile || uploadingImage || !isEditMode}
+                >
+                  {uploadingImage ? "Uploading…" : "Upload image"}
+                </Button>
+                {!isEditMode && (
+                  <span className="text-xs text-ink-muted">
+                    Save the truck first, then upload an image.
+                  </span>
+                )}
+                {imageUploaded && (
+                  <span className="text-sm font-medium text-navy-700">Image updated.</span>
+                )}
+              </div>
+              {imageError && (
+                <span role="alert" className="text-xs font-medium text-red-700">
+                  {imageError}
+                </span>
+              )}
+            </div>
+          </FieldGroup>
+        )}
 
         <FieldGroup title="Truck insurance">
           <TextField
