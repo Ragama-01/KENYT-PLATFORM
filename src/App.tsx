@@ -280,7 +280,6 @@ export default function App() {
       policy_number: truck.policyNumber ?? truck.policy_number,
       serial_number: truck.serialNumber ?? truck.serial_number,
       inspection_sticker_no: truck.inspectionStickerNo ?? truck.inspection_sticker_no,
-      driver_id: truck.driverId ?? truck.driver_id,
       driver_name: truck.driverName ?? truck.driver_name,
       image_url: truck.imageUrl ?? truck.image_url,
     }));

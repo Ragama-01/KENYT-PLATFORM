@@ -90,7 +90,6 @@ export interface Truck {
   policy_number?: string;
   serial_number?: string;
   inspection_sticker_no?: string;
-  driver_id?: number | null;
   driver_name?: string;
   image_url?: string | null;
 
@@ -242,7 +241,6 @@ export interface TruckFormValues {
   policy_number?: string;
   serial_number?: string;
   inspection_sticker_no?: string;
-  driver_id?: number | null;
   driver_name?: string;
   image_url?: string | null;
 

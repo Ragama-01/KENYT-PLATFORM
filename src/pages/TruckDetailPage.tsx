@@ -96,7 +96,6 @@ export default function TruckDetailPage({ truck, onBack, onEdit }: TruckDetailPa
             <Field label="Serial number" value={truck.serial_number} />
             <Field label="Inspection sticker no." value={truck.inspection_sticker_no} />
             <Field label="Driver name" value={truck.driver_name} />
-            <Field label="Driver ID" value={truck.driver_id} />
           </dl>
         </section>
 

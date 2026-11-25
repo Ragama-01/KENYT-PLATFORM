@@ -40,7 +40,6 @@ async function fetchTrucks(): Promise<TruckRecord[]> {
     policy_number: truck.policyNumber ?? truck.policy_number,
     serial_number: truck.serialNumber ?? truck.serial_number,
     inspection_sticker_no: truck.inspectionStickerNo ?? truck.inspection_sticker_no,
-    driver_id: truck.driverId ?? truck.driver_id,
     driver_name: truck.driverName ?? truck.driver_name,
     image_url: truck.imageUrl ?? truck.image_url,
   }));
@@ -55,16 +54,6 @@ async function deleteTruck(id: TruckRecord["id"]): Promise<void> {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message ?? "Failed to delete truck");
   }
-}
-
-type ExpiryStatus = "ok" | "warning" | "expired";
-
-function expiryStatus(dateStr: string, warningDays = 30): ExpiryStatus {
-  const expiry = new Date(dateStr);
-  const daysLeft = Math.ceil((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  if (daysLeft < 0) return "expired";
-  if (daysLeft <= warningDays) return "warning";
-  return "ok";
 }
 
 function earliestExpiry(truck: TruckRecord) {
@@ -85,27 +74,6 @@ function earliestExpiry(truck: TruckRecord) {
 function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   return new Date(dateStr).toLocaleDateString();
-}
-
-function ExpiryBadge({ dateStr, label }: { dateStr: string; label: string }) {
-  const status = expiryStatus(dateStr);
-  const daysLeft = Math.ceil(
-    (new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  );
-
-  const styles: Record<ExpiryStatus, string> = {
-    ok: "bg-navy-50 text-navy-700",
-    warning: "bg-amber-50 text-amber-700",
-    expired: "bg-red-50 text-red-700",
-  };
-
-  const text = status === "expired" ? `${label} expired` : `${label} in ${daysLeft}d`;
-
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status]}`}>
-      {text}
-    </span>
-  );
 }
 
 interface TrucksListPageProps {
@@ -181,21 +149,24 @@ useEffect(() => {
             <thead className="bg-navy-950/5 text-xs uppercase tracking-wide text-ink-muted">
               <tr>
                 <th className="px-4 py-3 font-medium">Image</th>
-                <th className="px-4 py-3 font-medium">Registration</th>
-                <th className="px-4 py-3 font-medium">Driver</th>
-                <th className="px-4 py-3 font-medium">Logbook No.</th>
-                <th className="px-4 py-3 font-medium">TGL Unit</th>
-                <th className="px-4 py-3 font-medium">Insurance Policy</th>
+                <th className="px-4 py-3 font-medium">Truck Registration</th>
+                <th className="px-4 py-3 font-medium">Trailer Registration</th>
+                <th className="px-4 py-3 font-medium">2027 TGL</th>
+                <th className="px-4 py-3 font-medium">Logbook Truck No.</th>
+                <th className="px-4 py-3 font-medium">Logbook Trailer No.</th>
+                <th className="px-4 py-3 font-medium">Insurance Policy Number</th>
+                <th className="px-4 py-3 font-medium">Insurance Serial Number</th>
                 <th className="px-4 py-3 font-medium">Insurance Expiry</th>
-                <th className="px-4 py-3 font-medium">Speed Governor Expiry</th>
-                <th className="px-4 py-3 font-medium">Trailer</th>
-                <th className="px-4 py-3 font-medium">Compliance</th>
+                <th className="px-4 py-3 font-medium">Inspection Sticker No.</th>
+                <th className="px-4 py-3 font-medium">COMESA Insurance No.</th>
+                <th className="px-4 py-3 font-medium">COMESA Insurance Expiry</th>
+                <th className="px-4 py-3 font-medium">Inspection Expiry</th>
+                <th className="px-4 py-3 font-medium">Driver Name</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-navy-950/10">
               {sortedTrucks.map((truck) => {
-                const soonest = earliestExpiry(truck);
                 const isConfirming = confirmingDeleteId === truck.id;
                 const isDeleting = deletingId === truck.id;
 
@@ -213,20 +184,18 @@ useEffect(() => {
                       )}
                     </td>
                     <td className="px-4 py-3 font-mono text-ink">{truck.registration_number}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.driver_name || "—"}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.logbook_number || "—"}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.tgl_number || "—"}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.truck_insurance_ref || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.trailer_registration || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.tgl_2027 || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.logbook_truck || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.logbook_trailer || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.policy_number || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.serial_number || "—"}</td>
                     <td className="px-4 py-3 text-ink-muted">{formatDate(truck.truck_insurance_expiry)}</td>
-                    <td className="px-4 py-3 text-ink-muted">{formatDate(truck.speed_governor_expiry)}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.trailer?.registration_number || "—"}</td>
-                    <td className="px-4 py-3">
-                      {soonest ? (
-                        <ExpiryBadge dateStr={soonest.value} label={soonest.label} />
-                      ) : (
-                        <span className="text-ink-muted">—</span>
-                      )}
-                    </td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.inspection_sticker_no || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.truck_comesa_policy_number || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{formatDate(truck.truck_comesa_date_expiry)}</td>
+                    <td className="px-4 py-3 text-ink-muted">{formatDate(truck.inspection_expiry)}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.driver_name || "—"}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <button

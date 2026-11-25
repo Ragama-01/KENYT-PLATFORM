@@ -77,10 +77,6 @@ const schema = z
     policy_number: z.string().optional(),
     serial_number: z.string().optional(),
     inspection_sticker_no: z.string().optional(),
-    driver_id: z.preprocess(
-      (v) => (v === "" || v == null ? undefined : Number(v)),
-      z.number().int().positive().optional()
-    ),
     driver_name: z.string().optional(),
     image_url: z.string().optional(),
 
@@ -349,15 +345,6 @@ export default function TruckForm({ onSubmit, truck, onViewAll, onImageUpload }:
             placeholder="e.g. John Kamau"
             error={errors.driver_name?.message}
             {...register("driver_name")}
-          />
-          <TextField
-            id="driver_id"
-            label="Driver ID"
-            type="number"
-            placeholder="e.g. 12"
-            hint="Optional reference to a registered driver"
-            error={errors.driver_id?.message}
-            {...register("driver_id")}
           />
         </FieldGroup>
 
