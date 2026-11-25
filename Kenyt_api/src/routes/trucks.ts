@@ -3,10 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import fs from "node:fs";
 import path from "node:path";
-import { pipeline } from "node:stream/promises";
 import { authenticate, requireRole, WRITE_ROLES } from "../middleware/auth";
 import fastifyMultipart from "@fastify/multipart";
-import fastifyStatic from "@fastify/static";
 import sharp from "sharp";
 
 import {
@@ -50,10 +48,21 @@ export default async function truckRoutes(app: FastifyInstance) {
     },
   });
 
-  // Serve uploaded images statically
-  await app.register(fastifyStatic, {
-    root: UPLOAD_DIR,
-    prefix: "/uploads/",
+  // Serve uploaded images (manual route — avoids @fastify/static, which
+  // pulls an ESM-only content-disposition that crashes on Node 18).
+  app.get("/uploads/:filename", async (request: any, reply) => {
+    const filename = path.basename(request.params.filename);
+    const filePath = path.join(UPLOAD_DIR, filename);
+
+    if (!fs.existsSync(filePath)) {
+      return reply.status(404).send({ error: "Not found" });
+    }
+
+    const ext = path.extname(filename).toLowerCase();
+    const contentType =
+      ext === ".png" ? "image/png" : ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "application/octet-stream";
+
+    return reply.type(contentType).send(fs.createReadStream(filePath));
   });
 
   // ---------------------------------------------------------------
