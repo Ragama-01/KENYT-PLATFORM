@@ -81,6 +81,12 @@ model Truck {
   driverName             String?   @map("driver_name")
   imageUrl               String?   @map("image_url")
 
+  // Archiving (soft delete)
+  archivedAt             DateTime? @map("archived_at")
+  archivedBy             String?   @map("archived_by")
+  archiveReason          String?   @map("archive_reason")
+  archiveNote            String?   @map("archive_note")
+
   // Truck registration form additions
   truckType              String?   @map("truck_type")
   truckMakeModel         String?   @map("truck_make_model")

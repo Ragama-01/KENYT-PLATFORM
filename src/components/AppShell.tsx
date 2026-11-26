@@ -84,6 +84,7 @@ interface AppShellProps {
   isSuperAdmin?: boolean;
   currentUser?: { email: string; fullName: string; role: string } | null;
   onLogout?: () => void;
+  fullWidth?: boolean;
 }
 
 export default function AppShell({
@@ -94,6 +95,7 @@ export default function AppShell({
   isSuperAdmin,
   currentUser,
   onLogout,
+  fullWidth,
 }: AppShellProps) {
   const visibleNavItems = NAV_ITEMS.filter(
     (item) => !item.superAdminOnly || isSuperAdmin
@@ -198,7 +200,7 @@ export default function AppShell({
       </aside>
 
       <main className="flex-1 overflow-y-auto px-10 py-10">
-        <div className="mx-auto max-w-3xl">{children}</div>
+        <div className={fullWidth ? "w-full" : "mx-auto max-w-3xl"}>{children}</div>
       </main>
     </div>
   );

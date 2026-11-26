@@ -237,13 +237,14 @@ export default async function truckRoutes(app: FastifyInstance) {
   // ---------------------------------------------------------------
   app.get("/trucks", async (request: any, reply) => {
     try {
-      const query = request.query as {
-        page?: string;
-        limit?: string;
-        search?: string;
-        filter?: "all" | "expired" | "expiring_soon";
-        driver?: string;
-      };
+       const query = request.query as {
+         page?: string;
+         limit?: string;
+         search?: string;
+         filter?: "all" | "expired" | "expiring_soon";
+         driver?: string;
+         archived?: "true" | "false" | "all";
+       };
 
       const pageNum = Math.max(1, parseInt(query.page ?? "1", 10));
       const limitNum = Math.min(
@@ -252,7 +253,16 @@ export default async function truckRoutes(app: FastifyInstance) {
       );
       const skip = (pageNum - 1) * limitNum;
 
-      const where: any = {};
+       const where: any = {};
+
+       // Archive filter: default to active (non-archived) trucks
+       if (query.archived === "true") {
+         where.archivedAt = { not: null };
+       } else if (query.archived === "all") {
+         // no filter
+       } else {
+         where.archivedAt = null;
+       }
 
       // Search by registration or driver name
       if (query.search) {
@@ -701,6 +711,156 @@ export default async function truckRoutes(app: FastifyInstance) {
           error: "server_error",
         });
       }
+    }
+  );
+
+  // ---------------------------------------------------------------
+  // Archive a truck (soft delete) - admin/ops only
+  // ---------------------------------------------------------------
+  app.post(
+    "/trucks/:id/archive",
+    { preHandler: requireRole(WRITE_ROLES) },
+    async (request: any, reply) => {
+      const truckId = Number(request.params.id);
+      const { reason, note } = request.body || {};
+
+      try {
+        const truck = await prisma.truck.findUnique({
+          where: { truckId },
+          include: { allocations: true, containers: true },
+        });
+
+        if (!truck) {
+          return reply.status(404).send({ error: "Truck not found" });
+        }
+
+        // Prevent archiving if linked to an active trip/load
+        const activeAlloc = truck.allocations?.some(
+          (a: any) => !a.arrivedAt
+        );
+        const activeContainer = truck.containers?.some(
+          (c: any) => c.orderId != null
+        );
+        if (activeAlloc || activeContainer) {
+          return reply.status(409).send({
+            error: "active_link",
+            message:
+              "Cannot archive a truck linked to an active trip or load. Complete or reassign first.",
+          });
+        }
+
+        const user = (request as any).user;
+        const archivedBy = user?.email || user?.fullName || "unknown";
+
+        await prisma.truck.update({
+          where: { truckId },
+          data: {
+            archivedAt: new Date(),
+            archivedBy,
+            archiveReason: reason || null,
+            archiveNote: note || null,
+          },
+        });
+
+        return reply.send({ message: "Truck archived" });
+      } catch (err) {
+        request.log.error(err);
+        return reply.status(500).send({ error: "server_error" });
+      }
+    }
+  );
+
+  // ---------------------------------------------------------------
+  // Restore an archived truck - admin/ops only
+  // ---------------------------------------------------------------
+  app.post(
+    "/trucks/:id/restore",
+    { preHandler: requireRole(WRITE_ROLES) },
+    async (request: any, reply) => {
+      const truckId = Number(request.params.id);
+      try {
+        await prisma.truck.update({
+          where: { truckId },
+          data: {
+            archivedAt: null,
+            archivedBy: null,
+            archiveReason: null,
+            archiveNote: null,
+          },
+        });
+        return reply.send({ message: "Truck restored" });
+      } catch (err) {
+        request.log.error(err);
+        return reply.status(500).send({ error: "server_error" });
+      }
+    }
+  );
+
+  // ---------------------------------------------------------------
+  // Bulk archive - admin/ops only
+  // ---------------------------------------------------------------
+  app.post(
+    "/trucks/bulk/archive",
+    { preHandler: requireRole(WRITE_ROLES) },
+    async (request: any, reply) => {
+      const { ids, reason, note } = request.body || {};
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return reply.status(400).send({ error: "ids required" });
+      }
+      const user = (request as any).user;
+      const archivedBy = user?.email || user?.fullName || "unknown";
+
+      // Filter out trucks linked to active trips/loads
+      const trucks = await prisma.truck.findMany({
+        where: { truckId: { in: ids.map(Number) } },
+        include: { allocations: true, containers: true },
+      });
+      const archivable = trucks.filter((t: any) => {
+        const activeAlloc = t.allocations?.some((a: any) => !a.arrivedAt);
+        const activeContainer = t.containers?.some((c: any) => c.orderId != null);
+        return !activeAlloc && !activeContainer;
+      });
+      const skipped = trucks.length - archivable.length;
+
+      await prisma.truck.updateMany({
+        where: { truckId: { in: archivable.map((t: any) => t.truckId) } },
+        data: {
+          archivedAt: new Date(),
+          archivedBy,
+          archiveReason: reason || null,
+          archiveNote: note || null,
+        },
+      });
+
+      return reply.send({
+        archived: archivable.length,
+        skipped,
+        message: `${archivable.length} archived, ${skipped} skipped (active links).`,
+      });
+    }
+  );
+
+  // ---------------------------------------------------------------
+  // Bulk restore - admin/ops only
+  // ---------------------------------------------------------------
+  app.post(
+    "/trucks/bulk/restore",
+    { preHandler: requireRole(WRITE_ROLES) },
+    async (request: any, reply) => {
+      const { ids } = request.body || {};
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return reply.status(400).send({ error: "ids required" });
+      }
+      await prisma.truck.updateMany({
+        where: { truckId: { in: ids.map(Number) } },
+        data: {
+          archivedAt: null,
+          archivedBy: null,
+          archiveReason: null,
+          archiveNote: null,
+        },
+      });
+      return reply.send({ restored: ids.length });
     }
   );
 

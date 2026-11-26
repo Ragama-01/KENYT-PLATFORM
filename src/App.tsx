@@ -749,6 +749,7 @@ export default function App() {
     isSuperAdmin={isSuperAdmin}
     currentUser={currentUser}
     onLogout={handleLogout}
+    fullWidth={section === "trucks" && truckView.mode === "list"}
   >
     {/* Trucks */}
 
@@ -772,13 +773,13 @@ export default function App() {
             mode: "form",
           })
         }
-        onViewTruck={(truck) =>
+        onViewTruck={(truck: any) =>
           setTruckView({
             mode: "detail",
             truck,
           })
         }
-        onEditTruck={(truck) =>
+        onEditTruck={(truck: any) =>
           setTruckView({
             mode: "form",
             truck,
