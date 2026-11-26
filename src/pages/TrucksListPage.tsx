@@ -149,19 +149,24 @@ useEffect(() => {
             <thead className="bg-navy-950/5 text-xs uppercase tracking-wide text-ink-muted">
               <tr>
                 <th className="px-4 py-3 font-medium">Image</th>
-                <th className="px-4 py-3 font-medium">Truck Registration</th>
-                <th className="px-4 py-3 font-medium">Trailer Registration</th>
-                <th className="px-4 py-3 font-medium">2027 TGL</th>
-                <th className="px-4 py-3 font-medium">Logbook Truck No.</th>
-                <th className="px-4 py-3 font-medium">Logbook Trailer No.</th>
-                <th className="px-4 py-3 font-medium">Insurance Policy Number</th>
-                <th className="px-4 py-3 font-medium">Insurance Serial Number</th>
-                <th className="px-4 py-3 font-medium">Insurance Expiry</th>
-                <th className="px-4 py-3 font-medium">Inspection Sticker No.</th>
-                <th className="px-4 py-3 font-medium">COMESA Insurance No.</th>
-                <th className="px-4 py-3 font-medium">COMESA Insurance Expiry</th>
+                <th className="px-4 py-3 font-medium">Truck Registration No.</th>
+                <th className="px-4 py-3 font-medium">Truck Logbook No.</th>
+                <th className="px-4 py-3 font-medium">Truck Type</th>
+                <th className="px-4 py-3 font-medium">Truck Make/Model</th>
+                <th className="px-4 py-3 font-medium">Truck COMESA No.</th>
+                <th className="px-4 py-3 font-medium">Truck COMESA Expiry</th>
+                <th className="px-4 py-3 font-medium">Truck Driver Full Names</th>
+                <th className="px-4 py-3 font-medium">Trailer Registration No.</th>
+                <th className="px-4 py-3 font-medium">Trailer Logbook No.</th>
+                <th className="px-4 py-3 font-medium">Trailer COMESA No.</th>
+                <th className="px-4 py-3 font-medium">Trailer COMESA Expiry</th>
+                <th className="px-4 py-3 font-medium">Inspection Cert No.</th>
                 <th className="px-4 py-3 font-medium">Inspection Expiry</th>
-                <th className="px-4 py-3 font-medium">Driver Name</th>
+                <th className="px-4 py-3 font-medium">Speed Governor Cert No.</th>
+                <th className="px-4 py-3 font-medium">Speed Governor Expiry</th>
+                <th className="px-4 py-3 font-medium">TGL Year</th>
+                <th className="px-4 py-3 font-medium">TGL No.</th>
+                <th className="px-4 py-3 font-medium">Insurance Expiry</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
@@ -173,9 +178,13 @@ useEffect(() => {
                 return (
                   <tr key={truck.id} className="hover:bg-navy-950/[0.02]">
                     <td className="px-4 py-3">
-                      {resolveImageUrl(truck.image_url) ? (
+                      {resolveImageUrl(
+                        (truck.images as any)?.truck_front ?? truck.image_url
+                      ) ? (
                         <img
-                          src={resolveImageUrl(truck.image_url)!}
+                          src={resolveImageUrl(
+                            (truck.images as any)?.truck_front ?? truck.image_url
+                          )!}
                           alt={truck.registration_number}
                           className="h-10 w-14 rounded border border-navy-950/10 object-cover"
                         />
@@ -184,18 +193,23 @@ useEffect(() => {
                       )}
                     </td>
                     <td className="px-4 py-3 font-mono text-ink">{truck.registration_number}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.trailer_registration || "—"}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.tgl_2027 || "—"}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.logbook_truck || "—"}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.logbook_trailer || "—"}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.policy_number || "—"}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.serial_number || "—"}</td>
-                    <td className="px-4 py-3 text-ink-muted">{formatDate(truck.truck_insurance_expiry)}</td>
-                    <td className="px-4 py-3 text-ink-muted">{truck.inspection_sticker_no || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.logbook_number || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{(truck as any).truck_type || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{(truck as any).truck_make_model || "—"}</td>
                     <td className="px-4 py-3 text-ink-muted">{truck.truck_comesa_policy_number || "—"}</td>
                     <td className="px-4 py-3 text-ink-muted">{formatDate(truck.truck_comesa_date_expiry)}</td>
-                    <td className="px-4 py-3 text-ink-muted">{formatDate(truck.inspection_expiry)}</td>
                     <td className="px-4 py-3 text-ink-muted">{truck.driver_name || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.trailer_registration || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.logbook_trailer || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.trailer?.comesa_policy_number || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{formatDate(truck.trailer?.comesa_date_expiry)}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.inspection_cert_number || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{formatDate(truck.inspection_expiry)}</td>
+                    <td className="px-4 py-3 text-ink-muted">{(truck as any).speed_governor_cert_no || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{formatDate(truck.speed_governor_expiry)}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.tgl_year || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{truck.tgl_number || "—"}</td>
+                    <td className="px-4 py-3 text-ink-muted">{formatDate(truck.truck_insurance_expiry)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <button
