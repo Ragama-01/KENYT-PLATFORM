@@ -22,9 +22,11 @@ export default async function driverRoutes(app: FastifyInstance) {
           kraPin: v.kra_pin,
           kpaId: v.kpa_id || null,
           phoneNumber: v.phone_number,
+          alternativePhoneNumber: v.alternative_phone_number || null,
           email: v.email,
           nssfNumber: v.nssf_number,
           shifNumber: v.shif_number,
+          certificateOfGoodConduct: v.certificate_of_good_conduct || null,
         },
       });
 

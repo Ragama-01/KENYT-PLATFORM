@@ -278,11 +278,15 @@ export interface Driver {
 
   phone_number: string;
 
+  alternative_phone_number?: string;
+
   email: string;
 
   nssf_number: string;
 
   shif_number: string;
+
+  certificate_of_good_conduct?: string;
 
   status: DriverStatus;
 }

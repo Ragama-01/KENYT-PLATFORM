@@ -308,8 +308,10 @@ export default function App() {
       kra_pin: driver.kraPin,
       kpa_id: driver.kpaId,
       phone_number: driver.phoneNumber,
+      alternative_phone_number: driver.alternativePhoneNumber,
       nssf_number: driver.nssfNumber,
       shif_number: driver.shifNumber,
+      certificate_of_good_conduct: driver.certificateOfGoodConduct,
     }));
 
     console.log("Loaded drivers:", transformed);

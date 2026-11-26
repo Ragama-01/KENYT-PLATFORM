@@ -19,9 +19,15 @@ const schema = z.object({
   phone_number: z
     .string()
     .regex(/^(?:\+254|0)7\d{8}$|^(?:\+254|0)1\d{8}$/, "Enter a valid Kenyan phone number"),
+  alternative_phone_number: z
+    .string()
+    .regex(/^(?:\+254|0)7\d{8}$|^(?:\+254|0)1\d{8}$/, "Enter a valid Kenyan phone number")
+    .optional()
+    .or(z.literal("")),
   email: z.string().email("Enter a valid email address"),
   nssf_number: z.string().min(1, "Required"),
   shif_number: z.string().min(1, "Required"),
+  certificate_of_good_conduct: z.string().optional(),
 });
 
 type DriverFormValues = z.infer<typeof schema>;
@@ -48,9 +54,11 @@ function toFormValues(driver?: Driver): Partial<DriverFormValues> {
     kra_pin: driver.kra_pin,
     kpa_id: driver.kpa_id,
     phone_number: driver.phone_number,
+    alternative_phone_number: driver.alternative_phone_number,
     email: driver.email,
     nssf_number: driver.nssf_number,
     shif_number: driver.shif_number,
+    certificate_of_good_conduct: driver.certificate_of_good_conduct,
   };
 }
 
@@ -84,9 +92,11 @@ export default function DriverForm({ truckOptions, onSubmit, driver, onViewAll }
       kra_pin: values.kra_pin,
       kpa_id: values.kpa_id,
       phone_number: values.phone_number,
+      alternative_phone_number: values.alternative_phone_number || undefined,
       email: values.email,
       nssf_number: values.nssf_number,
       shif_number: values.shif_number,
+      certificate_of_good_conduct: values.certificate_of_good_conduct,
     } as Omit<Driver, "status">);
 
     // Only clear the form back to blank on create; on edit, keep the
@@ -163,6 +173,14 @@ export default function DriverForm({ truckOptions, onSubmit, driver, onViewAll }
             {...register("phone_number")}
           />
           <TextField
+            id="alternative_phone_number"
+            label="Alternative phone number"
+            mono
+            placeholder="0712345678"
+            error={errors.alternative_phone_number?.message}
+            {...register("alternative_phone_number")}
+          />
+          <TextField
             id="email"
             label="Email"
             type="email"
@@ -202,6 +220,14 @@ export default function DriverForm({ truckOptions, onSubmit, driver, onViewAll }
             mono
             error={errors.shif_number?.message}
             {...register("shif_number")}
+          />
+          <TextField
+            id="certificate_of_good_conduct"
+            label="Certificate of good conduct"
+            mono
+            placeholder="e.g. CGC-12345"
+            error={errors.certificate_of_good_conduct?.message}
+            {...register("certificate_of_good_conduct")}
           />
         </FieldGroup>
 

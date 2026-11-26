@@ -172,9 +172,15 @@ export const driverRegistrationSchema = z.object({
   phone_number: z
     .string()
     .regex(/^(?:\+254|0)7\d{8}$|^(?:\+254|0)1\d{8}$/, "Enter a valid Kenyan phone number"),
+  alternative_phone_number: z
+    .string()
+    .regex(/^(?:\+254|0)7\d{8}$|^(?:\+254|0)1\d{8}$/, "Enter a valid Kenyan phone number")
+    .optional()
+    .or(z.literal("")),
   email: z.string().email(),
   nssf_number: z.string().min(1),
   shif_number: z.string().min(1),
+  certificate_of_good_conduct: z.string().optional(),
 });
 
 export const driverUpdateSchema = driverRegistrationSchema.partial();
