@@ -281,7 +281,10 @@ export default function App() {
       serial_number: truck.serialNumber ?? truck.serial_number,
       inspection_sticker_no: truck.inspectionStickerNo ?? truck.inspection_sticker_no,
       driver_name: truck.driverName ?? truck.driver_name,
-      image_url: truck.imageUrl ?? truck.image_url,
+      truck_type: truck.truckType ?? truck.truck_type,
+      truck_make_model: truck.truckMakeModel ?? truck.truck_make_model,
+      speed_governor_cert_no: truck.speedGovernorCertNo ?? truck.speed_governor_cert_no,
+      images: truck.images ?? truck.images,
     }));
 
     setTrucks(transformed);
@@ -753,7 +756,6 @@ export default function App() {
       <TruckForm
         truck={truckView.truck}
         onSubmit={handleSaveTruck}
-        onImageUpload={canWriteTrucks ? handleTruckImageUpload : undefined}
         onViewAll={() =>
           setTruckView({
             mode: "list",

@@ -98,17 +98,23 @@ export default async function truckRoutes(app: FastifyInstance) {
 
           status: "available",
 
-          // New truck details fields
-          trailerRegistration: v.trailer_registration || null,
-          tgl2027: v.tgl_2027 || null,
-          logbookTruck: v.logbook_truck || null,
-          logbookTrailer: v.logbook_trailer || null,
-          policyNumber: v.policy_number || null,
-          serialNumber: v.serial_number || null,
-          inspectionStickerNo: v.inspection_sticker_no || null,
-          driverId: v.driver_id ?? null,
-          driverName: v.driver_name || null,
-          imageUrl: v.image_url || null,
+           // New truck details fields
+           trailerRegistration: v.trailer_registration || null,
+           tgl2027: v.tgl_2027 || null,
+           logbookTruck: v.logbook_truck || null,
+           logbookTrailer: v.logbook_trailer || null,
+           policyNumber: v.policy_number || null,
+           serialNumber: v.serial_number || null,
+           inspectionStickerNo: v.inspection_sticker_no || null,
+           driverId: v.driver_id ?? null,
+           driverName: v.driver_name || null,
+           imageUrl: v.image_url || null,
+
+           // Truck registration form additions
+           truckType: v.truck_type || null,
+           truckMakeModel: v.truck_make_model || null,
+           speedGovernorCertNo: v.speed_governor_cert_no || null,
+           images: v.images ?? null,
 
           // Truck insurance
           truck_insurance_issued: v.truck_insurance_issued
@@ -610,8 +616,10 @@ export default async function truckRoutes(app: FastifyInstance) {
 
         const imageUrl = `/uploads/${filename}`;
 
+        const slot = request.query?.slot;
+
         // Delete old image if exists
-        if (truck.imageUrl) {
+        if (!slot && truck.imageUrl) {
           const oldPath = path.join(
             UPLOAD_DIR,
             path.basename(truck.imageUrl)
@@ -620,15 +628,33 @@ export default async function truckRoutes(app: FastifyInstance) {
             fs.unlinkSync(oldPath);
           }
         }
+        if (slot && truck.images && (truck.images as Record<string, string>)[slot]) {
+          const oldPath = path.join(
+            UPLOAD_DIR,
+            path.basename((truck.images as Record<string, string>)[slot])
+          );
+          if (fs.existsSync(oldPath)) {
+            fs.unlinkSync(oldPath);
+          }
+        }
 
         // Update truck record
-        await prisma.truck.update({
-          where: { truckId },
-          data: { imageUrl: imageUrl },
-        });
+        if (slot) {
+          const currentImages = (truck.images as Record<string, string>) || {};
+          await prisma.truck.update({
+            where: { truckId },
+            data: { images: { ...currentImages, [slot]: imageUrl } },
+          });
+        } else {
+          await prisma.truck.update({
+            where: { truckId },
+            data: { imageUrl: imageUrl },
+          });
+        }
 
         return reply.send({
           image_url: imageUrl,
+          slot: slot || null,
           message: "Image uploaded successfully",
         });
       } catch (err) {

@@ -29,6 +29,12 @@ const truckBaseSchema = z.object({
     .min(1)
     .regex(/^K[A-Z]{2}\s?\d{3}[A-Z]$/i, "Expected format e.g. KDA 123B"),
 
+  // Truck registration form additions
+  truck_type: z.string().min(1, "Truck type is required"),
+  truck_make_model: z.string().optional(),
+  speed_governor_cert_no: z.string().optional(),
+  images: z.record(z.string()).optional(),
+
   // New truck details fields (Phase 1)
   trailer_registration: z.string().optional(),
   tgl_2027: z.string().optional(),

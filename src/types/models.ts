@@ -92,6 +92,12 @@ export interface Truck {
   inspection_sticker_no?: string;
   driver_name?: string;
   image_url?: string | null;
+  images?: Record<string, string> | null;
+
+  // Truck registration form additions
+  truck_type?: string;
+  truck_make_model?: string;
+  speed_governor_cert_no?: string;
 
   status: TruckStatus;
 
@@ -243,6 +249,12 @@ export interface TruckFormValues {
   inspection_sticker_no?: string;
   driver_name?: string;
   image_url?: string | null;
+  images?: Record<string, string> | null;
+
+  // Truck registration form additions
+  truck_type?: string;
+  truck_make_model?: string;
+  speed_governor_cert_no?: string;
 
   trailer?: TrailerFormValues;
 }
