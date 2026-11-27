@@ -152,7 +152,8 @@ export default function DriversListPage({ onAddDriver, onViewDriver, onEditDrive
   const [archiveNote, setArchiveNote] = useState("");
   const [confirmUnassign, setConfirmUnassign] = useState(false);
   const [pendingUnassignReg, setPendingUnassignReg] = useState<string | null>(null);
-  const [archiving, setArchiving] = useState(false);
+  const [archivedCount, setArchivedCount] = useState<number | null>(null);
+const [archiving, setArchiving] = useState(false);
 
   useEffect(() => { localStorage.setItem("driverDensity", density); }, [density]);
   useEffect(() => { localStorage.setItem("driverCols", JSON.stringify([...visibleCols])); }, [visibleCols]);
@@ -166,6 +167,18 @@ export default function DriversListPage({ onAddDriver, onViewDriver, onEditDrive
     finally { setLoading(false); }
   };
   useEffect(() => { load(); setSelected(new Set()); }, [tab]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/drivers?archived=true`, { headers: authHeaders() });
+        if (res.ok) {
+          const data = await res.json();
+          const list = Array.isArray(data) ? data : data.data ?? [];
+          setArchivedCount(list.length);
+        }
+      } catch {}
+    })();
+  }, []);
 
   const filtered = useMemo(() => {
     if (!drivers) return [];
@@ -321,7 +334,7 @@ export default function DriversListPage({ onAddDriver, onViewDriver, onEditDrive
           Active ({tab === "active" && drivers ? drivers.length : "…"})
         </button>
         <button onClick={() => setTab("archived")} className={`rounded-md px-3 py-1.5 text-sm font-medium ${tab === "archived" ? "bg-navy-950 text-paper" : "text-ink-muted hover:bg-navy-950/5"}`}>
-          Archived ({tab === "archived" && drivers ? drivers.length : "…"})
+          Archived ({archivedCount ?? (tab === "archived" && drivers ? drivers.length : "…")})
         </button>
         <div className="ml-auto flex items-center gap-2">
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, ID, phone, KRA, NSSF, truck…" className="rounded-md border border-navy-600/20 px-3 py-1.5 text-sm" />
