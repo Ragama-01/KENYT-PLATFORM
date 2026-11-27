@@ -752,7 +752,7 @@ export default function App() {
     isSuperAdmin={isSuperAdmin}
     currentUser={currentUser}
     onLogout={handleLogout}
-    fullWidth={section === "trucks" && truckView.mode === "list"}
+    fullWidth={section === "trucks" && truckView.mode === "list" || section === "drivers" && driverView.mode === "list"}
   >
     {/* Trucks */}
 
