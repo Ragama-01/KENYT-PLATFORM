@@ -16,6 +16,7 @@ const schema = z.object({
     .string()
     .regex(/^[A-Z]\d{9}[A-Z]$/i, "Expected format e.g. A012345678Z"),
   kpa_id: z.string().optional(),
+  kpa_id_expiry: z.string().optional(),
   phone_number: z
     .string()
     .regex(/^(?:\+254|0)7\d{8}$|^(?:\+254|0)1\d{8}$/, "Enter a valid Kenyan phone number"),
@@ -53,6 +54,7 @@ function toFormValues(driver?: Driver): Partial<DriverFormValues> {
     date_of_joining: driver.date_of_joining,
     kra_pin: driver.kra_pin,
     kpa_id: driver.kpa_id,
+    kpa_id_expiry: driver.kpa_id_expiry,
     phone_number: driver.phone_number,
     alternative_phone_number: driver.alternative_phone_number,
     email: driver.email,
@@ -91,6 +93,7 @@ export default function DriverForm({ truckOptions, onSubmit, driver, onViewAll }
       date_of_joining: values.date_of_joining,
       kra_pin: values.kra_pin,
       kpa_id: values.kpa_id,
+      kpa_id_expiry: values.kpa_id_expiry,
       phone_number: values.phone_number,
       alternative_phone_number: values.alternative_phone_number || undefined,
       email: values.email,
@@ -206,6 +209,13 @@ export default function DriverForm({ truckOptions, onSubmit, driver, onViewAll }
             placeholder="e.g. KPA-12345"
             error={errors.kpa_id?.message}
             {...register("kpa_id")}
+          />
+          <TextField
+            id="kpa_id_expiry"
+            label="KPA ID expiry date"
+            type="date"
+            error={errors.kpa_id_expiry?.message}
+            {...register("kpa_id_expiry")}
           />
           <TextField
             id="nssf_number"

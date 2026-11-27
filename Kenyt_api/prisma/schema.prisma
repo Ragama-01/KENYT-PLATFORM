@@ -247,6 +247,7 @@ model Driver {
 
   kraPin      String @unique @map("kra_pin")
   kpaId       String? @unique @map("kpa_id")
+  kpaIdExpiry DateTime? @map("kpa_id_expiry") @db.Date
   phoneNumber String @unique @map("phone_number")
   email       String @unique
   nssfNumber  String @unique @map("nssf_number")

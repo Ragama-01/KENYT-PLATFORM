@@ -276,6 +276,8 @@ export interface Driver {
 
   kpa_id?: string;
 
+  kpa_id_expiry?: string;
+
   phone_number: string;
 
   alternative_phone_number?: string;

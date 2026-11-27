@@ -169,6 +169,7 @@ export const driverRegistrationSchema = z.object({
 
   kra_pin: z.string().regex(/^[A-Z]\d{9}[A-Z]$/i, "Expected format e.g. A012345678Z"),
   kpa_id: z.string().optional(),
+  kpa_id_expiry: dateStr.optional(),
   phone_number: z
     .string()
     .regex(/^(?:\+254|0)7\d{8}$|^(?:\+254|0)1\d{8}$/, "Enter a valid Kenyan phone number"),

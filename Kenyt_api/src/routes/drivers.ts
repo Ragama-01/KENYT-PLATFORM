@@ -21,6 +21,7 @@ export default async function driverRoutes(app: FastifyInstance) {
           dateOfJoining: new Date(v.date_of_joining),
           kraPin: v.kra_pin,
           kpaId: v.kpa_id || null,
+          kpaIdExpiry: v.kpa_id_expiry ? new Date(v.kpa_id_expiry) : null,
           phoneNumber: v.phone_number,
           alternativePhoneNumber: v.alternative_phone_number || null,
           email: v.email,

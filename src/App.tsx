@@ -307,6 +307,7 @@ export default function App() {
       date_of_joining: driver.dateOfJoining,
       kra_pin: driver.kraPin,
       kpa_id: driver.kpaId,
+      kpa_id_expiry: driver.kpaIdExpiry,
       phone_number: driver.phoneNumber,
       alternative_phone_number: driver.alternativePhoneNumber,
       nssf_number: driver.nssfNumber,
