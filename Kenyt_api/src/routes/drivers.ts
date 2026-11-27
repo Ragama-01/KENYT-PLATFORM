@@ -97,7 +97,6 @@ export default async function driverRoutes(app: FastifyInstance) {
           archivedAt: new Date(),
           archivedBy,
           archiveReason: reason || null,
-          dateOfLeaving: dateOfLeaving ? new Date(dateOfLeaving) : null,
           archiveNote: note || null,
         },
       });
@@ -119,7 +118,6 @@ export default async function driverRoutes(app: FastifyInstance) {
           archivedAt: null,
           archivedBy: null,
           archiveReason: null,
-          dateOfLeaving: null,
           archiveNote: null,
           truckId: null,
         },
@@ -163,7 +161,6 @@ export default async function driverRoutes(app: FastifyInstance) {
         archivedAt: new Date(),
         archivedBy,
         archiveReason: reason || null,
-        dateOfLeaving: dateOfLeaving ? new Date(dateOfLeaving) : null,
         archiveNote: note || null,
       },
     });
@@ -183,7 +180,6 @@ export default async function driverRoutes(app: FastifyInstance) {
         archivedAt: null,
         archivedBy: null,
         archiveReason: null,
-        dateOfLeaving: null,
         archiveNote: null,
         truckId: null,
       },

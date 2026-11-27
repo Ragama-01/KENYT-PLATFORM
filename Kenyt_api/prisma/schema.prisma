@@ -257,6 +257,11 @@ model Driver {
   alternativePhoneNumber    String? @map("alternative_phone_number")
   certificateOfGoodConduct  String? @map("certificate_of_good_conduct")
 
+  archivedAt    DateTime? @map("archived_at")
+  archivedBy    Int?      @map("archived_by")
+  archiveReason String?   @map("archive_reason")
+  archiveNote   String?   @map("archive_note")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

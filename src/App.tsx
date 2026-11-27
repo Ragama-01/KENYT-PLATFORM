@@ -835,13 +835,13 @@ export default function App() {
             mode: "form",
           })
         }
-        onViewDriver={(driver) =>
+        onViewDriver={(driver: Driver) =>
           setDriverView({
             mode: "detail",
             driver,
           })
         }
-        onEditDriver={(driver) =>
+        onEditDriver={(driver: Driver) =>
           setDriverView({
             mode: "form",
             driver,
